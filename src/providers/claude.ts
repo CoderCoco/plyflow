@@ -1,4 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
+import { spawn } from 'node:child_process';
 import type { AIProvider, AICompleteRequest, AIResult } from './types.js';
 
 export type AnthropicLike = { messages: { create(body: any): Promise<any> } };
@@ -59,4 +60,18 @@ export class ClaudeProvider implements AIProvider {
     const text = await this.runCli(req.prompt, req.system, req.model);
     return { text };
   }
+}
+
+export function defaultRunCli(prompt: string, system: string, model: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const args = ['-p', prompt, '--model', model];
+    if (system) args.push('--append-system-prompt', system);
+    const child = spawn('claude', args, { stdio: ['ignore', 'pipe', 'pipe'] });
+    let out = '';
+    let err = '';
+    child.stdout.on('data', (d) => (out += d.toString()));
+    child.stderr.on('data', (d) => (err += d.toString()));
+    child.on('error', reject);
+    child.on('close', (code) => (code === 0 ? resolve(out.trim()) : reject(new Error(`claude exited ${code}: ${err}`))));
+  });
 }
