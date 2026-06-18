@@ -1,0 +1,48 @@
+name: mission
+inputs:
+  issue: { type: number, required: true }
+  repo: { type: string, required: false }
+  models: { type: string, required: false }   # "role=value,..." parsed by resolve-models
+
+phases:
+  - name: Setup
+    steps:
+      - id: models
+        uses: ./lib/resolve-models.ts
+        with:
+          overrides: "${{ inputs.models }}"
+          fableAvailable: true
+
+      - id: issue
+        uses: ./lib/gh-issue.ts
+        with:
+          issue: "${{ inputs.issue }}"
+          repo: "${{ inputs.repo }}"
+
+      - id: worktree
+        needs: [issue]
+        uses: ./lib/git-worktree.ts
+        with:
+          issue: "${{ inputs.issue }}"
+          slug: "${{ steps.issue.output.title }}"
+
+  - name: Plan
+    steps:
+      - id: plan
+        needs: [issue, worktree, models]
+        agent: ./agents/flight-director.md
+        model: "${{ steps.models.output.director }}"
+        params:
+          cwd: "${{ steps.worktree.output.worktree_path }}"
+          allowedTools: ["Read", "Grep", "Glob", "Bash"]
+        prompt: "Issue #${{ inputs.issue }}: ${{ steps.issue.output.title }}\n\n${{ steps.issue.output.body }}\n\nProduce the flight plan."
+        output: ./schemas/Plan.ts
+
+      # NOTE: The open_questions re-plan loop (loop around the director step +
+      # foreach over open_questions to gather answers) is a future refinement.
+      # This task implements a single director pass followed by a confirm gate.
+      - id: ready
+        needs: [plan]
+        input:
+          type: confirm
+          message: "Flight plan ready: ${{ steps.plan.output.tasks.length }} tasks. Proceed to liftoff?"
