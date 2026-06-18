@@ -50,7 +50,15 @@ export async function runWorkflow(
   const baseDir = dirname(workflowPath);
   const registry = opts.registry ?? buildDefaultRegistry();
   const runDir = opts.runDir ?? '.plyflow/runs';
-  const inputs = opts.inputs ?? {};
+
+  const inputs: Record<string, unknown> = { ...(opts.inputs ?? {}) };
+  for (const [key, def] of Object.entries(wf.inputs ?? {})) {
+    if (inputs[key] === undefined) {
+      if (def.default !== undefined) inputs[key] = def.default;
+      else if (def.required) throw new Error(`missing required input "${key}"`);
+    }
+  }
+
   const emit = (e: EngineEvent) => opts.onEvent?.(e);
 
   let journal: Journal;
@@ -63,6 +71,7 @@ export async function runWorkflow(
   }
 
   const outputs: Record<string, unknown> = {};
+  const dirty = new Set<string>();
   const exprCtx = (): ExprContext => ({
     inputs,
     steps: Object.fromEntries(Object.entries(outputs).map(([k, v]) => [k, { output: v }])),
@@ -88,14 +97,28 @@ export async function runWorkflow(
     const type = registry.select(step);
     const resolvedWith = resolveExpr(step.with ?? {}, exprCtx()) as Record<string, unknown>;
     const resolvedPrompt = step.prompt ? (resolveExpr(step.prompt, exprCtx()) as string) : undefined;
-    const hash = hashStep({ id: step.id, type: type.name, with: resolvedWith, prompt: resolvedPrompt });
+    const hash = hashStep({
+      id: step.id,
+      type: type.name,
+      inputs,
+      with: resolvedWith,
+      prompt: resolvedPrompt,
+      run: step.run,
+      uses: step.uses,
+      agent: step.agent,
+      input: step.input,
+      parallel: step.parallel,
+      output: step.output,
+    });
 
     const cached = journal.get(step.id);
-    if (cached && cached.status === 'completed' && cached.hash === hash) {
+    const upstreamDirty = (step.needs ?? []).some((n) => dirty.has(n));
+    if (cached && cached.status === 'completed' && cached.hash === hash && !upstreamDirty) {
       outputs[step.id] = cached.output;
       emit({ type: 'step-done', stepId: step.id, output: cached.output, cached: true });
       return;
     }
+    dirty.add(step.id);
 
     emit({ type: 'step-start', stepId: step.id });
     const startedAt = Date.now();
@@ -106,6 +129,7 @@ export async function runWorkflow(
       with: resolvedWith,
       provider: opts.provider,
       baseDir,
+      resolve: (value: unknown) => resolveExpr(value, exprCtx()),
       emit: (ev) => {
         if (ev.type === 'log') emit({ type: 'step-log', stepId: step.id, message: ev.message });
       },

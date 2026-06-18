@@ -46,4 +46,23 @@ describe('runWorkflow', () => {
     expect(reg.select({ id: 's', input: { type: 'confirm', message: 'm' } }).name).toBe('input');
     expect(reg.select({ id: 's', parallel: [] }).name).toBe('parallel');
   });
+
+  it('invalidates cache when inputs change on resume', async () => {
+    const first = await runWorkflow(wf, { inputs: { n: 5 }, runDir: dir, provider: new FakeProvider([]) });
+    const rerunIds: string[] = [];
+    await runWorkflow(wf, {
+      inputs: { n: 10 },
+      runId: first.runId,
+      runDir: dir,
+      provider: new FakeProvider([]),
+      onEvent: (e) => { if (e.type === 'step-done' && !e.cached) rerunIds.push(e.stepId); },
+    });
+    expect(rerunIds.sort()).toEqual(['double', 'label']);
+  });
+
+  it('throws on missing required input', async () => {
+    await expect(
+      runWorkflow(wf, { inputs: {}, runDir: dir, provider: new FakeProvider([]) }),
+    ).rejects.toThrow(/required/);
+  });
 });

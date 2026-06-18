@@ -20,4 +20,10 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run build
+      - name: Smoke-test built binary
+        run: |
+          out=$(node dist/cli/index.js 2>&1 || true)
+          echo "$out"
+          if echo "$out" | grep -q "Invalid or unexpected token"; then echo "FAIL: built bin has a shebang/syntax error"; exit 1; fi
+          if ! echo "$out" | grep -qiE "workflow|command"; then echo "FAIL: built bin did not print the expected usage error"; exit 1; fi
       - run: npm test

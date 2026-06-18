@@ -19,6 +19,7 @@ export interface StepContext {
   provider: AIProvider;
   /** Directory of the workflow file; used to resolve relative paths. */
   baseDir: string;
+  resolve?(value: unknown): unknown;
   emit(event: StepEvent): void;
   prompt(req: PromptRequest): Promise<unknown>;
 }

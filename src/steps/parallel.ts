@@ -8,11 +8,15 @@ export function makeParallelStep(registry: StepRegistry): StepType<StepDef[]> {
     match: (def: StepDef) => def.parallel !== undefined,
     parse: (def: StepDef): StepDef[] => def.parallel!,
     run: async (children: StepDef[], ctx: StepContext): Promise<StepResult> => {
+      const resolveVal = ctx.resolve ?? ((v: unknown) => v);
       const results = await Promise.all(
         children.map(async (child) => {
           const type = registry.select(child);
-          const childCtx: StepContext = { ...ctx, with: child.with ?? {} };
-          const res = await type.run(type.parse(child), childCtx);
+          const childWith = resolveVal(child.with ?? {}) as Record<string, unknown>;
+          const effectiveChild =
+            child.prompt !== undefined ? { ...child, prompt: resolveVal(child.prompt) as string } : child;
+          const childCtx: StepContext = { ...ctx, with: childWith };
+          const res = await type.run(type.parse(effectiveChild), childCtx);
           return [child.id, res.output] as const;
         }),
       );
