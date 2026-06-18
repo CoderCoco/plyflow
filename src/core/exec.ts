@@ -15,6 +15,7 @@ export interface ExecScope {
   registry: StepRegistry;
   outputs: Record<string, unknown>;
   bindings: Record<string, unknown>;
+  inheritedSteps: Record<string, { output: unknown }>;
   journal: Journal;
   journalPath: string;
   dirty: Set<string>;
@@ -40,6 +41,42 @@ export interface RootScopeOptions {
   prompt(stepId: string, req: PromptRequest): Promise<unknown>;
 }
 
+function makeRunChildren(
+  parentScope: ExecScope,
+): ExecScope['runChildren'] {
+  return function runChildren(steps, extraBindings, subPath) {
+    // Snapshot parent outputs as inheritedSteps at fan-out time so child
+    // expressions can reference ancestor step outputs via ${{ steps.x.output }}.
+    const inheritedSteps: Record<string, { output: unknown }> = {
+      ...parentScope.inheritedSteps,
+      ...Object.fromEntries(
+        Object.entries(parentScope.outputs).map(([k, v]) => [k, { output: v }]),
+      ),
+    };
+    // Build childScope without runChildren first to avoid referencing the variable
+    // before it is initialised (TDZ error with const in object literal).
+    const childScope: ExecScope = {
+      inputs: parentScope.inputs,
+      env: parentScope.env,
+      baseDir: parentScope.baseDir,
+      provider: parentScope.provider,
+      registry: parentScope.registry,
+      outputs: {},
+      bindings: { ...parentScope.bindings, ...extraBindings },
+      inheritedSteps,
+      journal: parentScope.journal,
+      journalPath: subPath,
+      dirty: parentScope.dirty,
+      emit: parentScope.emit,
+      prompt: parentScope.prompt,
+      runChildren: null!, // set immediately below
+    };
+    // Now that childScope is initialised, wire up runChildren to close over it.
+    childScope.runChildren = makeRunChildren(childScope);
+    return runSteps(steps, childScope);
+  };
+}
+
 export function createRootScope(opts: RootScopeOptions): ExecScope {
   const scope: ExecScope = {
     inputs: opts.inputs,
@@ -49,30 +86,15 @@ export function createRootScope(opts: RootScopeOptions): ExecScope {
     registry: opts.registry,
     outputs: {},
     bindings: {},
+    inheritedSteps: {},
     journal: opts.journal,
     journalPath: opts.journalPath,
     dirty: opts.dirty,
     emit: opts.emit,
     prompt: opts.prompt,
-    runChildren(steps, extraBindings, subPath) {
-      const childScope: ExecScope = {
-        inputs: scope.inputs,
-        env: scope.env,
-        baseDir: scope.baseDir,
-        provider: scope.provider,
-        registry: scope.registry,
-        outputs: {},
-        bindings: { ...scope.bindings, ...extraBindings },
-        journal: scope.journal,
-        journalPath: subPath,
-        dirty: scope.dirty,
-        emit: scope.emit,
-        prompt: scope.prompt,
-        runChildren: scope.runChildren,
-      };
-      return runSteps(steps, childScope);
-    },
+    runChildren: null!, // set below after scope is constructed
   };
+  scope.runChildren = makeRunChildren(scope);
   return scope;
 }
 
@@ -85,9 +107,14 @@ export async function runSteps(
 
   const exprCtx = (): ExprContext => ({
     inputs: scope.inputs,
-    steps: Object.fromEntries(
-      Object.entries(scope.outputs).map(([k, v]) => [k, { output: v }]),
-    ),
+    // Merge inherited ancestor step outputs first, then own outputs so own steps
+    // win on collision.  The child's returned outputs map is scope.outputs only.
+    steps: {
+      ...scope.inheritedSteps,
+      ...Object.fromEntries(
+        Object.entries(scope.outputs).map(([k, v]) => [k, { output: v }]),
+      ),
+    },
     env: scope.env,
     bindings: scope.bindings,
   });
@@ -131,9 +158,12 @@ export async function runSteps(
     const stepCtx: StepContext = {
       inputs: scope.inputs,
       env: scope.env,
-      steps: Object.fromEntries(
-        Object.entries(scope.outputs).map(([k, v]) => [k, { output: v }]),
-      ),
+      steps: {
+        ...scope.inheritedSteps,
+        ...Object.fromEntries(
+          Object.entries(scope.outputs).map(([k, v]) => [k, { output: v }]),
+        ),
+      },
       with: resolvedWith,
       provider: scope.provider,
       baseDir: scope.baseDir,

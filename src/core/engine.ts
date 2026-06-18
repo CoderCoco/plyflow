@@ -91,9 +91,14 @@ export async function runWorkflow(
         prompt,
       });
 
-      // Seed scope outputs with all previously accumulated outputs so that
+      // Seed scope with all previously accumulated outputs so that
       // cross-phase ${{ steps.x }} expressions resolve correctly.
-      Object.assign(scope.outputs, allOutputs);
+      // Use inheritedSteps so the phase's own outputs map stays clean.
+      Object.assign(scope.inheritedSteps,
+        Object.fromEntries(
+          Object.entries(allOutputs).map(([k, v]) => [k, { output: v }]),
+        ),
+      );
 
       await runSteps(phase.steps, scope);
 
