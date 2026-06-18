@@ -44,6 +44,12 @@ export interface StepDef {
   concurrency?: number;
   /** Child sub-pipeline; used by composite step types such as loop and foreach. */
   steps?: StepDef[];
+  /** Per-step model override (expression-resolved). */
+  model?: string;
+  /** Per-step mode override (expression-resolved). */
+  mode?: string;
+  /** Per-step params override merged into the provider request (expression-resolved). */
+  params?: Record<string, unknown>;
 }
 
 export interface InputStepDef {

@@ -38,6 +38,9 @@ const stepDef: z.ZodType<any> = z.lazy(() =>
       dependsOn: z.string().optional(),
       concurrency: z.number().int().positive().optional(),
       steps: z.array(stepDef).optional(),
+      model: z.string().optional(),
+      mode: z.string().optional(),
+      params: z.record(z.string(), z.unknown()).optional(),
     })
     .refine(
       (s) =>

@@ -140,6 +140,11 @@ export async function runSteps(
     const ctx = exprCtx();
     const resolvedWith = resolveExpr(step.with ?? {}, ctx) as Record<string, unknown>;
     const resolvedPrompt = step.prompt ? (resolveExpr(step.prompt, ctx) as string) : undefined;
+    const resolvedModel = step.model ? (resolveExpr(step.model, ctx) as string) : undefined;
+    const resolvedMode = step.mode ? (resolveExpr(step.mode, ctx) as string) : undefined;
+    const resolvedParams = step.params
+      ? (resolveExpr(step.params, ctx) as Record<string, unknown>)
+      : undefined;
     const hash = hashStep({
       id: step.id,
       type: type.name,
@@ -192,7 +197,13 @@ export async function runSteps(
       prompt: (req) => scope.prompt(step.id, req),
       runChildren: scope.runChildren,
     };
-    const effectiveDef: StepDef = { ...step, prompt: resolvedPrompt };
+    const effectiveDef: StepDef = {
+      ...step,
+      prompt: resolvedPrompt,
+      model: resolvedModel,
+      mode: resolvedMode,
+      params: resolvedParams,
+    };
 
     try {
       const res = await runWithRetry(type, effectiveDef, stepCtx, step.retry?.max ?? 0, step.retry?.backoff ?? 0);

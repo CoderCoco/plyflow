@@ -52,8 +52,9 @@ export class ClaudeProvider implements AIProvider {
   }
 
   async complete(req: AICompleteRequest): Promise<AIResult> {
-    if (this.mode === 'cli') return this.completeCli(req);
-    if (this.mode === 'agent-sdk') return this.completeAgentSdk(req);
+    const effectiveMode = req.mode ?? this.mode;
+    if (effectiveMode === 'cli') return this.completeCli(req);
+    if (effectiveMode === 'agent-sdk') return this.completeAgentSdk(req);
     return this.completeApi(req);
   }
 

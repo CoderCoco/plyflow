@@ -4,6 +4,8 @@ export interface AICompleteRequest {
   system: string;
   prompt: string;
   model: string;
+  /** Per-request mode override; takes precedence over the provider's constructed mode. */
+  mode?: string;
   params?: Record<string, unknown>;
   outputSchema?: JsonSchema;
 }
