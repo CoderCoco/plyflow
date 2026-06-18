@@ -65,7 +65,7 @@ function makeRunChildren(
       bindings: { ...parentScope.bindings, ...extraBindings },
       inheritedSteps,
       journal: parentScope.journal,
-      journalPath: subPath,
+      journalPath: `${parentScope.journalPath}/${subPath}`,
       dirty: parentScope.dirty,
       emit: parentScope.emit,
       prompt: parentScope.prompt,
@@ -154,7 +154,8 @@ export async function runSteps(
       output: step.output,
     });
 
-    const cached = scope.journal.get(step.id);
+    const journalKey = `${scope.journalPath}/${step.id}`;
+    const cached = scope.journal.get(journalKey);
     const upstreamDirty = (step.needs ?? []).some((n) => scope.dirty.has(n));
     if (cached && cached.status === 'completed' && cached.hash === hash && !upstreamDirty) {
       scope.outputs[step.id] = cached.output;
@@ -191,7 +192,7 @@ export async function runSteps(
       const res = await runWithRetry(type, effectiveDef, stepCtx, step.retry?.max ?? 0, step.retry?.backoff ?? 0);
       scope.outputs[step.id] = res.output;
       await scope.journal.record({
-        stepId: step.id,
+        stepId: journalKey,
         hash,
         output: res.output,
         status: 'completed',
@@ -202,7 +203,7 @@ export async function runSteps(
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       await scope.journal.record({
-        stepId: step.id,
+        stepId: journalKey,
         hash,
         output: null,
         status: 'failed',
