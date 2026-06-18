@@ -31,6 +31,9 @@ export interface StepDef {
   prompt?: string; // prompt passed to an agent step
   input?: InputStepDef;
   parallel?: StepDef[];
+  loop?: { maxIterations: number; until?: string };
+  /** Child sub-pipeline; used by composite step types such as loop and foreach. */
+  steps?: StepDef[];
 }
 
 export interface InputStepDef {

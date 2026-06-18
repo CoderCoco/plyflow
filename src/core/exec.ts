@@ -151,6 +151,8 @@ export async function runSteps(
       agent: step.agent,
       input: step.input,
       parallel: step.parallel,
+      loop: step.loop,
+      steps: step.steps,
       output: step.output,
     });
 
@@ -185,6 +187,7 @@ export async function runSteps(
         }
       },
       prompt: (req) => scope.prompt(step.id, req),
+      runChildren: scope.runChildren,
     };
     const effectiveDef: StepDef = { ...step, prompt: resolvedPrompt };
 

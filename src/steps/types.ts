@@ -22,6 +22,17 @@ export interface StepContext {
   resolve?(value: unknown): unknown;
   emit(event: StepEvent): void;
   prompt(req: PromptRequest): Promise<unknown>;
+  /**
+   * Run a child sub-pipeline and return its outputs map.
+   * Composite step types (loop, foreach, etc.) use this to recurse into
+   * the engine so child steps get proper journal tracking, caching, and
+   * expression evaluation.
+   */
+  runChildren?(
+    steps: StepDef[],
+    extraBindings: Record<string, unknown>,
+    subPath: string,
+  ): Promise<Record<string, unknown>>;
 }
 
 export interface StepResult {

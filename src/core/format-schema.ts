@@ -29,10 +29,14 @@ const stepDef: z.ZodType<any> = z.lazy(() =>
       prompt: z.string().optional(),
       input: inputStepDef.optional(),
       parallel: z.array(stepDef).optional(),
+      loop: z
+        .object({ maxIterations: z.number().int().positive(), until: z.string().optional() })
+        .optional(),
+      steps: z.array(stepDef).optional(),
     })
     .refine(
-      (s) => ['run', 'uses', 'agent', 'input', 'parallel'].filter((k) => s[k] !== undefined).length === 1,
-      { message: 'a step must have exactly one type key: run | uses | agent | input | parallel' },
+      (s) => ['run', 'uses', 'agent', 'input', 'parallel', 'loop'].filter((k) => s[k] !== undefined).length === 1,
+      { message: 'a step must have exactly one type key: run | uses | agent | input | parallel | loop' },
     ),
 );
 
