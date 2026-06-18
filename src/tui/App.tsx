@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Box } from 'ink';
+import { Box, useApp } from 'ink';
 import { ProgressTree, type PhaseView, type StepView } from './ProgressTree.js';
 import { Prompt } from './prompts.js';
 import type { EngineEvent } from '../core/engine.js';
@@ -27,6 +27,7 @@ function initialPhases(wf: WorkflowFile): PhaseView[] {
 }
 
 export function App({ workflow, events, registerPrompt, onDone }: AppProps): React.ReactElement {
+  const { exit } = useApp();
   const [phases, setPhases] = useState<PhaseView[]>(() => initialPhases(workflow));
   const [pending, setPending] = useState<PendingPrompt | null>(null);
 
@@ -47,6 +48,7 @@ export function App({ workflow, events, registerPrompt, onDone }: AppProps): Rea
         else if (e.type === 'step-error') setStatus(e.stepId, { status: 'error' });
       }
       onDone();
+      exit();
     })();
   }, []);
 
