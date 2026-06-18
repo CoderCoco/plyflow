@@ -1,0 +1,11 @@
+name: e2e
+inputs:
+  n: { type: number, required: true }
+phases:
+  - name: Compute
+    steps:
+      - id: double
+        run: "return { value: ctx.inputs.n * 2 };"
+      - id: label
+        needs: [double]
+        run: "return 'value=' + ctx.steps.double.output.value;"
