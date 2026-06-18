@@ -27,15 +27,11 @@ async function promisePool(
   }
 
   const iter = tasks[Symbol.iterator]();
-  let done = false;
 
   async function worker(): Promise<void> {
-    while (!done) {
+    for (;;) {
       const { value: task, done: iterDone } = iter.next();
-      if (iterDone) {
-        done = true;
-        return;
-      }
+      if (iterDone) return;
       await task();
     }
   }
@@ -86,12 +82,7 @@ export function makeForeachStep(): StepType<ForeachCfg> {
       // 2. For each element, compute key and dependsOn using item-scoped bindings.
       type ElementMeta = { key: string; element: unknown; needs: string[] };
       const metas: ElementMeta[] = array.map((element, i) => {
-        const itemCtx = {
-          inputs: ctx.inputs,
-          env: ctx.env,
-          steps: ctx.steps,
-          bindings: { ...(ctx.bindings ?? {}), [cfg.as]: element },
-        };
+        const itemCtx = { ...baseExprCtx, bindings: { ...baseExprCtx.bindings, [cfg.as]: element } };
 
         const key = cfg.key !== undefined ? String(resolveExpr(cfg.key, itemCtx)) : String(i);
 
@@ -107,6 +98,15 @@ export function makeForeachStep(): StepType<ForeachCfg> {
         return { key, element, needs };
       });
 
+      // 2b. Detect duplicate keys before building the DAG.
+      const seenKeys = new Set<string>();
+      for (const m of metas) {
+        if (seenKeys.has(m.key)) {
+          throw new Error(`foreach: duplicate element key "${m.key}"`);
+        }
+        seenKeys.add(m.key);
+      }
+
       // 3. Build DAG over elements and topo-sort into waves.
       //    planWaves throws /unknown/i on bad refs, /cycle/i on cycles.
       const dagNodes = metas.map((m) => ({ id: m.key, needs: m.needs }));
@@ -120,10 +120,13 @@ export function makeForeachStep(): StepType<ForeachCfg> {
       for (const wave of waveIds) {
         const tasks = wave.map((key) => async () => {
           const meta = metaByKey.get(key)!;
+          // Sanitize '/' in the key so it does not create ambiguous nested journal paths.
+          // The output map still uses the original key.
+          const safeKey = String(key).replaceAll('/', '%2F');
           const childOutputs = await ctx.runChildren!(
             cfg.steps,
             { [cfg.as]: meta.element },
-            `${cfg.stepId}/foreach:${key}`,
+            `${cfg.stepId}/foreach:${safeKey}`,
           );
           results.set(key, childOutputs);
         });

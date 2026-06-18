@@ -30,6 +30,7 @@ export function planWaves(nodes: DagNode[]): string[][] {
   while (remaining.length > 0) {
     const ready = remaining.filter((n) => n.needs.every((dep) => done.has(dep)));
     if (ready.length === 0) {
+      // List only the unresolved (cyclic) nodes, not all nodes.
       throw new Error(
         `dependency cycle detected among: ${remaining.map((n) => n.id).join(', ')}`,
       );

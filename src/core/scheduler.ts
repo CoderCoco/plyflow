@@ -17,7 +17,9 @@ export function planPhase(phase: Phase): StepDef[][] {
       if (m) throw new Error(`step "${m[2]}" needs unknown step "${m[1]}"`);
     }
     if (/cycle/i.test(msg)) {
-      throw new Error(`dependency cycle among steps: ${phase.steps.map((s) => s.id).join(', ')}`);
+      // Extract the cyclic node ids from dag's error message (only unresolved nodes).
+      const cyclicPart = msg.replace(/^dependency cycle detected among:\s*/, '');
+      throw new Error(`dependency cycle among steps: ${cyclicPart}`);
     }
     throw err;
   }
