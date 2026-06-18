@@ -126,6 +126,16 @@ export async function runSteps(
   return scope.outputs;
 
   async function runOneStep(step: StepDef): Promise<void> {
+    // Evaluate the optional `if:` guard. If present and resolves falsy, skip.
+    if (step.if !== undefined) {
+      const guard = resolveExpr(step.if, exprCtx());
+      if (!guard) {
+        scope.outputs[step.id] = null;
+        scope.emit({ type: 'step-skipped', stepId: step.id });
+        return;
+      }
+    }
+
     const type = scope.registry.select(step);
     const ctx = exprCtx();
     const resolvedWith = resolveExpr(step.with ?? {}, ctx) as Record<string, unknown>;

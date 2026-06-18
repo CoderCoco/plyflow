@@ -23,6 +23,7 @@ export interface StepDef {
   output?: string;
   retry?: { max: number; backoff?: number };
   continueOnError?: boolean;
+  if?: string;
   // Exactly one of the following selects the step type:
   run?: string; // inline JS source, or a path ending .ts/.js
   uses?: string; // path to a code module

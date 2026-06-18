@@ -22,6 +22,7 @@ const stepDef: z.ZodType<any> = z.lazy(() =>
       output: z.string().optional(),
       retry: z.object({ max: z.number().int().positive(), backoff: z.number().optional() }).optional(),
       continueOnError: z.boolean().optional(),
+      'if': z.string().optional(),
       run: z.string().optional(),
       uses: z.string().optional(),
       agent: z.string().optional(),

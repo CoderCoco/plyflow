@@ -15,7 +15,8 @@ export type EngineEvent =
   | { type: 'step-start'; stepId: string }
   | { type: 'step-done'; stepId: string; output: unknown; cached: boolean }
   | { type: 'step-error'; stepId: string; error: string }
-  | { type: 'step-log'; stepId: string; message: string };
+  | { type: 'step-log'; stepId: string; message: string }
+  | { type: 'step-skipped'; stepId: string };
 
 export interface RunOptions {
   inputs?: Record<string, unknown>;
