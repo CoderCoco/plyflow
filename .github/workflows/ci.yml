@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: ['20.x', '22.x']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build
+      - name: Smoke-test built binary
+        run: |
+          out=$(node dist/cli/index.js 2>&1 || true)
+          echo "$out"
+          if echo "$out" | grep -q "Invalid or unexpected token"; then echo "FAIL: built bin has a shebang/syntax error"; exit 1; fi
+          if ! echo "$out" | grep -qiE "workflow|command"; then echo "FAIL: built bin did not print the expected usage error"; exit 1; fi
+      - run: npm test

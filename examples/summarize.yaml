@@ -1,0 +1,15 @@
+name: summarize
+inputs:
+  text: { type: string, required: true }
+phases:
+  - name: Summarize
+    steps:
+      - id: summary
+        agent: ./agents/summarizer.md
+        prompt: "Summarize the following:\n${{ inputs.text }}"
+        output: ./schemas/Summary.ts
+      - id: confirm
+        needs: [summary]
+        input:
+          type: confirm
+          message: "Title is '${{ steps.summary.output.title }}'. Accept?"
