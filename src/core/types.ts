@@ -32,6 +32,16 @@ export interface StepDef {
   input?: InputStepDef;
   parallel?: StepDef[];
   loop?: { maxIterations: number; until?: string };
+  /** Dynamic fan-out over a runtime array. */
+  foreach?: string;
+  /** Binding name for the current element (default: 'item'). */
+  as?: string;
+  /** Expression that produces the element's identity key (default: array index as string). */
+  key?: string;
+  /** Expression that produces an array of keys this element depends on (default: []). */
+  dependsOn?: string;
+  /** Maximum number of elements to run concurrently within a wave (default: unlimited). */
+  concurrency?: number;
   /** Child sub-pipeline; used by composite step types such as loop and foreach. */
   steps?: StepDef[];
 }

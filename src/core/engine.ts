@@ -7,6 +7,7 @@ import { agentStep } from '../steps/agent.js';
 import { inputStep } from '../steps/input.js';
 import { makeParallelStep } from '../steps/parallel.js';
 import { makeLoopStep } from '../steps/loop.js';
+import { makeForeachStep } from '../steps/foreach.js';
 import type { PromptRequest } from '../steps/types.js';
 import type { AIProvider } from '../providers/types.js';
 import { createRootScope, runSteps } from './exec.js';
@@ -36,6 +37,7 @@ export function buildDefaultRegistry(): StepRegistry {
   reg.register(inputStep);
   reg.register(makeParallelStep(reg));
   reg.register(makeLoopStep());
+  reg.register(makeForeachStep());
   return reg;
 }
 
