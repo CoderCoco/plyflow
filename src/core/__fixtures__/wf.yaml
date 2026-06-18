@@ -1,0 +1,6 @@
+name: demo
+phases:
+  - name: P
+    steps:
+      - id: s
+        run: "return 1;"
