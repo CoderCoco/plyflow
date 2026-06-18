@@ -16,6 +16,8 @@ export interface StepContext {
   env: Record<string, string | undefined>;
   steps: Record<string, { output: unknown }>;
   with: Record<string, unknown>;
+  /** Active bindings from the current scope (e.g. `item`, `iteration`). */
+  bindings?: Record<string, unknown>;
   provider: AIProvider;
   /** Directory of the workflow file; used to resolve relative paths. */
   baseDir: string;

@@ -158,13 +158,15 @@ export async function runSteps(
 
     const journalKey = `${scope.journalPath}/${step.id}`;
     const cached = scope.journal.get(journalKey);
-    const upstreamDirty = (step.needs ?? []).some((n) => scope.dirty.has(n));
+    const upstreamDirty = (step.needs ?? []).some((n) =>
+      scope.dirty.has(`${scope.journalPath}/${n}`),
+    );
     if (cached && cached.status === 'completed' && cached.hash === hash && !upstreamDirty) {
       scope.outputs[step.id] = cached.output;
       scope.emit({ type: 'step-done', stepId: step.id, output: cached.output, cached: true });
       return;
     }
-    scope.dirty.add(step.id);
+    scope.dirty.add(journalKey);
 
     scope.emit({ type: 'step-start', stepId: step.id });
     const startedAt = Date.now();
@@ -178,6 +180,7 @@ export async function runSteps(
         ),
       },
       with: resolvedWith,
+      bindings: scope.bindings,
       provider: scope.provider,
       baseDir: scope.baseDir,
       resolve: (value: unknown) => resolveExpr(value, exprCtx()),

@@ -23,3 +23,63 @@ describe('parseAgentConfig', () => {
     expect(cfg.mode).toBe('api');
   });
 });
+
+// ── Fix E: loop step with no steps array fails validation ─────────────────────
+
+describe('Fix E — loop step requires non-empty steps', () => {
+  it('rejects a loop step with no steps array', () => {
+    expect(() =>
+      parseWorkflow({
+        name: 'test',
+        phases: [{ name: 'P', steps: [{ id: 'l', loop: { maxIterations: 3 } }] }],
+      }),
+    ).toThrow();
+  });
+
+  it('rejects a loop step with an empty steps array', () => {
+    expect(() =>
+      parseWorkflow({
+        name: 'test',
+        phases: [{ name: 'P', steps: [{ id: 'l', loop: { maxIterations: 3 }, steps: [] }] }],
+      }),
+    ).toThrow();
+  });
+
+  it('accepts a loop step with a non-empty steps array', () => {
+    expect(() =>
+      parseWorkflow({
+        name: 'test',
+        phases: [
+          {
+            name: 'P',
+            steps: [
+              { id: 'l', loop: { maxIterations: 3 }, steps: [{ id: 'inner', run: 'return 1;' }] },
+            ],
+          },
+        ],
+      }),
+    ).not.toThrow();
+  });
+});
+
+// ── Fix F: step id must not contain '/' ──────────────────────────────────────
+
+describe('Fix F — step id must not contain "/"', () => {
+  it('rejects a step id containing "/"', () => {
+    expect(() =>
+      parseWorkflow({
+        name: 'test',
+        phases: [{ name: 'P', steps: [{ id: 'bad/id', run: 'return 1;' }] }],
+      }),
+    ).toThrow();
+  });
+
+  it('accepts a step id without "/"', () => {
+    expect(() =>
+      parseWorkflow({
+        name: 'test',
+        phases: [{ name: 'P', steps: [{ id: 'good-id', run: 'return 1;' }] }],
+      }),
+    ).not.toThrow();
+  });
+});

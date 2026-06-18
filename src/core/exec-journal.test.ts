@@ -237,6 +237,74 @@ describe('composite journal keys — dirty cascade within scope', () => {
   });
 });
 
+// ── Fix A: dirty Set keyed by composite journal key ──────────────────────────
+
+describe('Fix A — dirty Set uses composite journal key', () => {
+  it('iteration-0 dirtiness does NOT force iteration-1 dependent to re-run when its own hash matches', async () => {
+    /**
+     * Two sibling runChildren under subPaths x/loop:0 and x/loop:1.
+     * Iteration 0 runs step "gen" fresh (makes it dirty).
+     * Iteration 1 has step "dep" that `needs: ['gen']`.
+     * But iteration 1's "gen" has a warm cache entry from a prior run at loop:1/gen.
+     * With composite dirty keys, loop:0's gen dirty entry (`phase:X/x/loop:0/gen`)
+     * must NOT cascade into loop:1's dep (`phase:X/x/loop:1/dep`).
+     */
+    const runId = 'run-fix-a-dirty';
+
+    // ── Prime journal with loop:1 entries (gen + dep both cached) ────────────
+    const journal1 = Journal.create(dir, runId, 'test', {});
+    const dirty1 = new Set<string>();
+    const scope1 = makeScope(journal1, 'phase:X', dirty1, []);
+
+    // Simulate the loop:0 child scope running both steps to cache them
+    await scope1.runChildren(
+      [
+        { id: 'gen', run: 'return 7;' },
+        { id: 'dep', needs: ['gen'], run: 'return 8;' },
+      ],
+      {},
+      'x/loop:1',
+    );
+    await journal1.setStatus('completed');
+
+    // ── Second run: loop:0 runs gen fresh (different body → dirty) ─────────
+    const journal2 = await Journal.load(dir, runId);
+    const dirty2 = new Set<string>();
+    const events2: EngineEvent[] = [];
+    const scope2 = makeScope(journal2, 'phase:X', dirty2, events2);
+
+    // loop:0: run gen with a different body so it's dirty
+    await scope2.runChildren(
+      [{ id: 'gen', run: 'return 999;' }],
+      {},
+      'x/loop:0',
+    );
+
+    // loop:1: dep needs gen — but loop:1/gen IS cached and so is loop:1/dep
+    await scope2.runChildren(
+      [
+        { id: 'gen', run: 'return 7;' },
+        { id: 'dep', needs: ['gen'], run: 'return 8;' },
+      ],
+      {},
+      'x/loop:1',
+    );
+
+    const doneEvents = events2.filter((e) => e.type === 'step-done') as Array<{
+      type: 'step-done';
+      stepId: string;
+      cached: boolean;
+    }>;
+
+    // loop:1's gen and dep must both be served from cache (no cross-iteration bleed)
+    const loop1GenEvent = doneEvents.filter((e) => e.stepId === 'gen')[1]; // second gen event (loop:1)
+    const loop1DepEvent = doneEvents.find((e) => e.stepId === 'dep');
+
+    expect(loop1GenEvent?.cached).toBe(true);
+    expect(loop1DepEvent?.cached).toBe(true);
+  });
+});
+
 // ── 4. Root phase composite key is deterministic across runs ─────────────────
 
 describe('composite journal keys — root phase key stability', () => {

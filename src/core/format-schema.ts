@@ -16,7 +16,7 @@ const inputStepDef = z.object({
 const stepDef: z.ZodType<any> = z.lazy(() =>
   z
     .object({
-      id: z.string().min(1),
+      id: z.string().min(1).refine((v) => !v.includes('/'), { message: "step id must not contain '/'" }),
       needs: z.array(z.string()).optional(),
       with: z.record(z.string(), z.unknown()).optional(),
       output: z.string().optional(),
@@ -37,7 +37,20 @@ const stepDef: z.ZodType<any> = z.lazy(() =>
     .refine(
       (s) => ['run', 'uses', 'agent', 'input', 'parallel', 'loop'].filter((k) => s[k] !== undefined).length === 1,
       { message: 'a step must have exactly one type key: run | uses | agent | input | parallel | loop' },
-    ),
+    )
+    .superRefine((s, ctx) => {
+      // Composite step types that orchestrate child steps must provide a non-empty steps array.
+      const compositesRequiringSteps: string[] = ['loop'];
+      for (const key of compositesRequiringSteps) {
+        if (s[key] !== undefined && (!Array.isArray(s['steps']) || s['steps'].length === 0)) {
+          ctx.addIssue({
+            code: 'custom',
+            path: ['steps'],
+            message: `a step with '${key}' must have a non-empty 'steps' array`,
+          });
+        }
+      }
+    }),
 );
 
 const workflowSchema = z.object({
