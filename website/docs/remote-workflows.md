@@ -59,7 +59,7 @@ Cache behaviour by ref type:
 | Ref type | Cache policy |
 |----------|-------------|
 | Full 40-hex commit SHA | Cached forever (immutable) |
-| Branch or tag name | Re-used for 10 minutes (TTL), then re-fetched |
+| Branch or tag name | Re-used for 1 hour (TTL), then re-fetched |
 
 To force a fresh download regardless of TTL, pass `--refresh`:
 
@@ -70,16 +70,18 @@ plyflow run github:myorg/my-workflows/examples/summarize.yaml@main --refresh
 ## Trust prompt
 
 Because remote workflows execute code on your machine, plyflow asks for
-confirmation the first time you run a workflow from a given repository:
+confirmation the first time you run a particular remote workflow. Once you
+confirm, that workflow runs without prompting again — unless its contents
+change, in which case you're asked to confirm the new version.
 
 ```
 Remote workflow from myorg/my-workflows.
 Run it? (yes/no) ›
 ```
 
-After you confirm, the trust decision is recorded and you won't be asked again
-for the same repo — unless the workflow file changes (detected by a content
-hash).
+After you confirm, the trust decision is recorded (keyed to the specific
+workflow file and a hash of its directory contents) and you won't be asked
+again for that workflow unless its content changes.
 
 To skip the prompt:
 
