@@ -14,12 +14,12 @@ export function planPhase(phase: Phase): StepDef[][] {
     const msg = err instanceof Error ? err.message : String(err);
     if (/unknown dependency/i.test(msg)) {
       const m = msg.match(/"([^"]+)" referenced by "([^"]+)"/);
-      if (m) throw new Error(`step "${m[2]}" needs unknown step "${m[1]}"`);
+      if (m) throw new Error(`step "${m[2]}" needs unknown step "${m[1]}"`, { cause: err });
     }
     if (/cycle/i.test(msg)) {
       // Extract the cyclic node ids from dag's error message (only unresolved nodes).
       const cyclicPart = msg.replace(/^dependency cycle detected among:\s*/, '');
-      throw new Error(`dependency cycle among steps: ${cyclicPart}`);
+      throw new Error(`dependency cycle among steps: ${cyclicPart}`, { cause: err });
     }
     throw err;
   }
