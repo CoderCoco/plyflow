@@ -2,6 +2,8 @@ export interface WorkflowFile {
   name: string;
   inputs?: Record<string, InputDef>;
   phases: Phase[];
+  /** Paths to plugin modules (relative to the workflow dir) to load before executing. */
+  plugins?: string[];
 }
 
 export interface InputDef {
@@ -36,6 +38,8 @@ export interface StepDef {
   foreach?: string;
   /** Path to a custom Ink/React widget component (.tsx). */
   widget?: string;
+  /** Registered name of a custom step type (plugin) to invoke. */
+  step?: string;
   /** Default value returned when the step runs in non-TTY mode (no prompt available). */
   default?: unknown;
   /** Binding name for the current element (default: 'item'). */

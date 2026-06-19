@@ -138,6 +138,56 @@ describe('A1 — widget and default fields', () => {
   });
 });
 
+// ── B1: step: type key + plugins: field ─────────────────────────────────────
+
+describe('B1 — step: type key and plugins: field', () => {
+  it('accepts a workflow with plugins field', () => {
+    expect(() =>
+      parseWorkflow({
+        name: 'test',
+        plugins: ['./p.ts'],
+        phases: [{ name: 'P', steps: [{ id: 's', run: 'x' }] }],
+      }),
+    ).not.toThrow();
+  });
+
+  it('accepts a workflow without plugins field', () => {
+    expect(() =>
+      parseWorkflow({
+        name: 'test',
+        phases: [{ name: 'P', steps: [{ id: 's', run: 'x' }] }],
+      }),
+    ).not.toThrow();
+  });
+
+  it('accepts a step with step: type key', () => {
+    expect(() =>
+      parseWorkflow({
+        name: 'test',
+        phases: [{ name: 'P', steps: [{ id: 's', step: 'my', with: {} }] }],
+      }),
+    ).not.toThrow();
+  });
+
+  it('rejects a step with both step and run (two type keys)', () => {
+    expect(() =>
+      parseWorkflow({
+        name: 'test',
+        phases: [{ name: 'P', steps: [{ id: 's', step: 'my', run: 'return 1;' }] }],
+      }),
+    ).toThrow();
+  });
+
+  it('regression: widget is still a valid type key', () => {
+    expect(() =>
+      parseWorkflow({
+        name: 'test',
+        phases: [{ name: 'P', steps: [{ id: 's', widget: './W.tsx' }] }],
+      }),
+    ).not.toThrow();
+  });
+});
+
 // ── Fix 2: bare if/until rejected at schema load time ──────────────────────
 
 describe('Fix 2 — bare if/until rejected at load', () => {
