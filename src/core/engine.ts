@@ -1,4 +1,3 @@
-import { dirname } from 'node:path';
 import { loadWorkflow } from './loader.js';
 import { Journal } from './journal.js';
 import { StepRegistry } from '../steps/registry.js';
@@ -11,7 +10,8 @@ import { makeForeachStep } from '../steps/foreach.js';
 import type { PromptRequest } from '../steps/types.js';
 import type { AIProvider } from '../providers/types.js';
 import { createRootScope, runSteps } from './exec.js';
-import { createLoader, DEFAULT_PROVIDED } from './module-loader.js';
+import { createLoader } from './module-loader.js';
+import { prepareEnv, type Exec } from './workflow-env.js';
 
 export type EngineEvent =
   | { type: 'phase-start'; phase: string }
@@ -29,6 +29,8 @@ export interface RunOptions {
   registry?: StepRegistry;
   onEvent?: (e: EngineEvent) => void;
   prompt?: (stepId: string, req: PromptRequest) => Promise<unknown>;
+  /** Injectable exec for running npm commands in prepareEnv; defaults to real npm. Useful for tests. */
+  exec?: Exec;
 }
 
 export function buildDefaultRegistry(): StepRegistry {
@@ -50,10 +52,27 @@ export async function runWorkflow(
   workflowPath: string,
   opts: RunOptions,
 ): Promise<{ runId: string; outputs: Record<string, unknown> }> {
+  const emit = (e: EngineEvent) => opts.onEvent?.(e);
+
+  // Prepare the workflow environment: resolve dir, provided modules, plugins.
+  // For workflows without a package.json (the common case) this is a no-op that
+  // returns defaults immediately.  When a package.json is present with missing
+  // deps, npm ci/install runs (or the injected opts.exec in tests).
+  const env = await prepareEnv(workflowPath, {
+    exec: opts.exec,
+    onLog: (msg) => emit({ type: 'step-log', stepId: '__env__', message: msg }),
+  });
+
+  // TODO(B3): env.plugins will be passed to loadPlugins() once pillar B3 lands.
+  // For now we resolve it so env prep side-effects (auto-install) run correctly.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _envPlugins = env.plugins;
+
   const wf = await loadWorkflow(workflowPath);
-  const baseDir = dirname(workflowPath);
   const registry = opts.registry ?? buildDefaultRegistry();
-  const loader = createLoader({ baseDir, provided: DEFAULT_PROVIDED });
+  // Build the loader from the env-resolved dir + provided set (merges
+  // DEFAULT_PROVIDED with any plyflow.provided entries from package.json).
+  const loader = createLoader({ baseDir: env.dir, provided: env.provided });
   const runDir = opts.runDir ?? '.plyflow/runs';
 
   const inputs: Record<string, unknown> = { ...(opts.inputs ?? {}) };
@@ -63,8 +82,6 @@ export async function runWorkflow(
       else if (def.required) throw new Error(`missing required input "${key}"`);
     }
   }
-
-  const emit = (e: EngineEvent) => opts.onEvent?.(e);
 
   let journal: Journal;
   if (opts.runId) {
@@ -88,7 +105,7 @@ export async function runWorkflow(
       const scope = createRootScope({
         inputs,
         env: process.env,
-        baseDir,
+        baseDir: env.dir,
         provider: opts.provider,
         registry,
         journal,

@@ -1,10 +1,11 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { mkdtemp, rm, writeFile, mkdir } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { runWorkflow, buildDefaultRegistry } from './engine.js';
 import { FakeProvider } from '../providers/fake.js';
+import type { Exec } from './workflow-env.js';
 
 const wf = fileURLToPath(new URL('./__fixtures__/e2e.yaml', import.meta.url));
 let dir: string;
@@ -64,5 +65,80 @@ describe('runWorkflow', () => {
     await expect(
       runWorkflow(wf, { inputs: {}, runDir: dir, provider: new FakeProvider([]) }),
     ).rejects.toThrow(/required/);
+  });
+
+  // C4: env-built loader is wired through the full engine path.
+  // The agent step loads a zod schema via ctx.loadModule (which goes through
+  // the env-resolved loader), validates the FakeProvider's structured output,
+  // and returns it — proving realm-shared zod instanceof checks hold.
+  it('C4: env-built loader validates structured output through the full engine path', async () => {
+    const schemaWf = fileURLToPath(
+      new URL('./__fixtures__/schema-e2e.yaml', import.meta.url),
+    );
+    const structured = { name: 'hello', value: 42 };
+    const provider = new FakeProvider([{ structured }]);
+
+    const res = await runWorkflow(schemaWf, {
+      runDir: dir,
+      provider,
+    });
+
+    // The schema validates name: string, value: number — if realm is broken
+    // instanceof would throw "must export default a Zod schema".
+    expect(res.outputs.result).toEqual(structured);
+  });
+
+  // C4: when the workflow dir has a package.json with a missing dep + a
+  // lockfile, runWorkflow calls the injected exec with 'npm ci'.
+  it('C4: triggers npm ci via opts.exec when workflow has a package.json with missing deps', async () => {
+    // Build a temp workflow dir with package.json + lockfile
+    const wfDir = await mkdtemp(join(tmpdir(), 'plyflow-c4-'));
+    try {
+      const wfPath = join(wfDir, 'workflow.yaml');
+      await writeFile(
+        wfPath,
+        [
+          'name: dep-install-test',
+          'phases:',
+          '  - name: Main',
+          '    steps:',
+          '      - id: s',
+          '        run: "return 1;"',
+        ].join('\n'),
+      );
+      await writeFile(
+        join(wfDir, 'package.json'),
+        JSON.stringify({
+          dependencies: { 'some-missing-dep': '1.0.0' },
+        }),
+      );
+      // Provide a lockfile so prepareEnv picks 'npm ci'
+      await writeFile(join(wfDir, 'package-lock.json'), JSON.stringify({ lockfileVersion: 3, packages: {} }));
+      // node_modules NOT created → dep is missing → install should fire
+
+      const execCalls: Array<{ cmd: string; args: string[] }> = [];
+      const fakeExec: Exec = vi.fn(async (cmd, args) => {
+        execCalls.push({ cmd, args });
+        // Simulate install success: create the dep dir so re-runs wouldn't re-install
+        await mkdir(join(wfDir, 'node_modules', 'some-missing-dep'), { recursive: true });
+        await writeFile(
+          join(wfDir, 'node_modules', 'some-missing-dep', 'package.json'),
+          JSON.stringify({ name: 'some-missing-dep', version: '1.0.0' }),
+        );
+        return { stdout: '', stderr: '', code: 0 };
+      });
+
+      await runWorkflow(wfPath, {
+        runDir: dir,
+        provider: new FakeProvider([]),
+        exec: fakeExec,
+      });
+
+      expect(execCalls).toHaveLength(1);
+      expect(execCalls[0].cmd).toBe('npm');
+      expect(execCalls[0].args).toEqual(['ci']);
+    } finally {
+      await rm(wfDir, { recursive: true, force: true });
+    }
   });
 });

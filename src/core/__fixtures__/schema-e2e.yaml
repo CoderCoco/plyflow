@@ -1,0 +1,8 @@
+name: schema-e2e
+phases:
+  - name: Main
+    steps:
+      - id: result
+        agent: agent.md
+        prompt: return structured
+        output: ./schema-e2e.ts
