@@ -68,6 +68,7 @@ export async function fetchComments(
       comments: [],
       reviewThreads: [],
       reviews: [],
+      headRefName: '',
     };
   }
 

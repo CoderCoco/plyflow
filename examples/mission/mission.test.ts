@@ -154,7 +154,7 @@ describe('mission.yaml', () => {
     const repair = reviewStep.steps?.find((s: any) => s.id === 'repair');
     const commitFix = repair?.steps?.find((s: any) => s.id === 'commit-fix');
     expect(commitFix).toBeDefined();
-    expect(commitFix['if']).toContain('steps.verify-fix.output.verdict');
+    expect(commitFix['if']).toContain("verify-fix");
     expect(commitFix.needs).toContain('verify-fix');
   });
 

@@ -64,6 +64,21 @@ const stepDef: z.ZodType<any> = z.lazy(() =>
           });
         }
       }
+
+      // Reject bare if/until — must be ${{ }} expressions to avoid always-truthy bugs.
+      const requiresExpr = (val: unknown, field: string) => {
+        if (typeof val === 'string' && !val.includes('${{')) {
+          ctx.addIssue({
+            code: 'custom',
+            path: [field],
+            message: `if/until must be a \${{ }} expression (got bare string: "${val}")`,
+          });
+        }
+      };
+      requiresExpr(s['if'], 'if');
+      if (s.loop && typeof s.loop === 'object' && 'until' in s.loop) {
+        requiresExpr((s.loop as { until?: unknown }).until, 'loop.until');
+      }
     }),
 );
 

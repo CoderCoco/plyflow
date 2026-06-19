@@ -83,3 +83,65 @@ describe('Fix F — step id must not contain "/"', () => {
     ).not.toThrow();
   });
 });
+
+// ── Fix 2: bare if/until rejected at schema load time ──────────────────────
+
+describe('Fix 2 — bare if/until rejected at load', () => {
+  it('rejects a step with bare if: "true" (no ${{ }})', () => {
+    expect(() =>
+      parseWorkflow({
+        name: 'test',
+        phases: [{ name: 'P', steps: [{ id: 's', run: 'x', if: 'true' }] }],
+      }),
+    ).toThrow(/if\/until must be a \$\{\{/);
+  });
+
+  it('accepts a step with if: "${{ true }}"', () => {
+    expect(() =>
+      parseWorkflow({
+        name: 'test',
+        phases: [{ name: 'P', steps: [{ id: 's', run: 'x', if: '${{ true }}' }] }],
+      }),
+    ).not.toThrow();
+  });
+
+  it('rejects a loop step with bare until (no ${{ }})', () => {
+    expect(() =>
+      parseWorkflow({
+        name: 'test',
+        phases: [
+          {
+            name: 'P',
+            steps: [
+              {
+                id: 'l',
+                loop: { maxIterations: 3, until: "steps.x.output.done == true" },
+                steps: [{ id: 'inner', run: 'return 1;' }],
+              },
+            ],
+          },
+        ],
+      }),
+    ).toThrow(/if\/until must be a \$\{\{/);
+  });
+
+  it('accepts a loop step with until: "${{ steps.x.output.done == true }}"', () => {
+    expect(() =>
+      parseWorkflow({
+        name: 'test',
+        phases: [
+          {
+            name: 'P',
+            steps: [
+              {
+                id: 'l',
+                loop: { maxIterations: 3, until: '${{ steps.x.output.done == true }}' },
+                steps: [{ id: 'inner', run: 'return 1;' }],
+              },
+            ],
+          },
+        ],
+      }),
+    ).not.toThrow();
+  });
+});

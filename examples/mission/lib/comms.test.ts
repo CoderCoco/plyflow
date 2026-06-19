@@ -327,3 +327,34 @@ describe('gh-comments reRequestReview', () => {
     expect(requestCall!.args).toContain('alice');
   });
 });
+
+// ---------------------------------------------------------------------------
+// post-comment tests (FIX 5 — comms.yaml notify wiring)
+// ---------------------------------------------------------------------------
+
+describe('post-comment', () => {
+  it('calls gh pr comment --body and returns the body', async () => {
+    const { exec, calls } = makeFakeExec(() => ({ stdout: '', stderr: '', code: 0 }));
+
+    const { default: postComment } = await import('./post-comment.js');
+    const result = await postComment({ pr: 42, body: 'Comms round complete.' }, undefined, exec);
+
+    const commentCall = calls.find((c) => c.cmd === 'gh' && c.args[1] === 'comment');
+    expect(commentCall).toBeDefined();
+    expect(commentCall!.args).toContain('42');
+    expect(commentCall!.args).toContain('--body');
+    expect(commentCall!.args).toContain('Comms round complete.');
+    expect(result.body).toBe('Comms round complete.');
+  });
+
+  it('includes --repo when provided', async () => {
+    const { exec, calls } = makeFakeExec(() => ({ stdout: '', stderr: '', code: 0 }));
+
+    const { default: postComment } = await import('./post-comment.js');
+    await postComment({ pr: 9, body: 'Hello', repo: 'owner/repo' }, undefined, exec);
+
+    const commentCall = calls.find((c) => c.cmd === 'gh' && c.args[1] === 'comment');
+    expect(commentCall!.args).toContain('--repo');
+    expect(commentCall!.args).toContain('owner/repo');
+  });
+});

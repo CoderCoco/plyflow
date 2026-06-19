@@ -10,6 +10,9 @@
  *
  * This is the gate that catches output-path wiring bugs that parse-only tests
  * miss (foreach output shape, loop.until references, if-guard paths, etc.).
+ *
+ * Also contains a FAIL-first scenario (FIX 7) that proves the retry loop
+ * and review repair fan-out actually fire when conditionals are ${{ }}-wrapped.
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
@@ -248,5 +251,144 @@ describe('mission.yaml dry-run end-to-end', () => {
     expect(buildOutput).toBeDefined();
     // FAKE_PLAN has 1 task named 'task-one'
     expect(Object.keys(buildOutput!)).toContain('task-one');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// FAIL-first scenario (FIX 7)
+//
+// Proves that the retry loop + review repair fan-out ACTUALLY fire now that
+// all if/until conditionals are ${{ }}-wrapped.
+//
+// Scenario:
+//   Build:  controller FAILs on iteration 0 → loop continues → astronaut
+//           called twice → controller PASSes on iteration 1 → loop exits.
+//   Review: Scout round 1 returns one 'typescript' bucket → Inspector returns
+//           one finding (confidence=80) → filter puts it in actionable →
+//           repair foreach runs (1 fix astronaut + 1 controller PASS) →
+//           Scout round 2 returns empty → filter sees nothing → until exits.
+// ---------------------------------------------------------------------------
+
+describe('mission.yaml FAIL-first dry-run (FIX 7)', () => {
+  let runDir: string;
+  const originalDryrun = process.env.MISSION_DRYRUN;
+
+  beforeEach(async () => {
+    process.env.MISSION_DRYRUN = '1';
+    runDir = await mkdtemp(join(tmpdir(), 'plyflow-mission-failfirst-'));
+  });
+
+  afterEach(async () => {
+    if (originalDryrun === undefined) {
+      delete process.env.MISSION_DRYRUN;
+    } else {
+      process.env.MISSION_DRYRUN = originalDryrun;
+    }
+    await rm(runDir, { recursive: true, force: true });
+  });
+
+  it('astronaut called twice when controller FAILs first; review repair runs then exits', async () => {
+    let controllerCallCount = 0;
+    let scoutCallCount = 0;
+
+    const FAKE_SCOUT_ONE_BUCKET = {
+      buckets: ['typescript'],
+      changed_files: ['src/thing.ts'],
+      specialists: ['typescript-specialist'],
+    };
+    const FAKE_SCOUT_EMPTY = {
+      buckets: [] as string[],
+      changed_files: [] as string[],
+      specialists: [] as string[],
+    };
+    const FAKE_INSPECTOR_ONE_FINDING = {
+      findings: [
+        {
+          file: 'src/thing.ts',
+          severity: 'major',
+          confidence: 80,
+          summary: 'Missing null check',
+          suggestion: 'Add null check before access',
+        },
+      ],
+    };
+
+    class MissionFakeRetryProvider implements AIProvider {
+      name = 'mission-fake-retry';
+      calls: AICompleteRequest[] = [];
+      astronautCallCount = 0;
+
+      async complete(req: AICompleteRequest): Promise<AIResult> {
+        this.calls.push(req);
+        const sys = req.system ?? '';
+
+        if (sys.startsWith('You are the Flight Director')) {
+          return { structured: FAKE_PLAN };
+        }
+
+        if (sys.startsWith('You are the Flight Controller')) {
+          controllerCallCount++;
+          if (controllerCallCount === 1) {
+            // First call: FAIL → forces astronaut retry
+            return {
+              structured: {
+                task_name: 'task-one',
+                verdict: 'FAIL' as const,
+                fixes_needed: ['Add missing null check'],
+              },
+            };
+          }
+          // All subsequent calls: PASS
+          return {
+            structured: {
+              task_name: 'task-one',
+              verdict: 'PASS' as const,
+              fixes_needed: [] as string[],
+            },
+          };
+        }
+
+        if (sys.startsWith('You are the Scout')) {
+          scoutCallCount++;
+          // Round 1: one bucket; round 2: empty (until condition met)
+          return { structured: scoutCallCount === 1 ? FAKE_SCOUT_ONE_BUCKET : FAKE_SCOUT_EMPTY };
+        }
+
+        if (
+          sys.startsWith('You are the Systems Inspector') ||
+          sys.startsWith('You are the Inspector')
+        ) {
+          return { structured: FAKE_INSPECTOR_ONE_FINDING };
+        }
+
+        if (sys.startsWith('You are an Astronaut')) {
+          this.astronautCallCount++;
+          return { structured: FAKE_ASTRONAUT_REPORT };
+        }
+
+        return { structured: {}, text: '' };
+      }
+    }
+
+    const provider = new MissionFakeRetryProvider();
+
+    await runWorkflow(missionYamlPath, {
+      inputs: { issue: 123, repo: 'owner/repo' },
+      provider,
+      runDir,
+      prompt: autoPrompt,
+    });
+
+    // CRITICAL: retry loop fired → astronaut was called at least twice
+    // (once for build task attempt 0, once for attempt 1 after FAIL)
+    // Plus at least once for the review repair fix → total ≥ 3
+    expect(provider.astronautCallCount).toBeGreaterThanOrEqual(2);
+
+    // Review ran two rounds: round 1 (found issues, ran repair), round 2 (empty → exit)
+    expect(scoutCallCount).toBeGreaterThanOrEqual(2);
+
+    // Controller: 1st call (FAIL for build), 2nd call (PASS for build retry),
+    // at least 1 more for review repair verify → total ≥ 3
+    expect(controllerCallCount).toBeGreaterThanOrEqual(3);
   });
 });

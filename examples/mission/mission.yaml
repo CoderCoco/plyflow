@@ -60,7 +60,7 @@ phases:
           - id: attempt
             loop:
               maxIterations: 3
-              until: "steps.verify.output.verdict == 'PASS'"
+              until: "${{ steps.verify.output.verdict == 'PASS' }}"
             steps:
               - id: implement
                 agent: ./agents/astronaut.md
@@ -72,6 +72,7 @@ phases:
                   Files: ${{ task.files }}
                   Acceptance: ${{ task.acceptance }}
                   Iteration: ${{ iteration }}
+                  Prior verification feedback (address these): ${{ steps.verify && steps.verify.output ? steps.verify.output.fixes_needed : '' }}
                 output: ./schemas/AstronautReport.ts
 
               - id: verify
@@ -89,7 +90,7 @@ phases:
 
           - id: commit
             needs: [attempt]
-            if: "steps.attempt.output.verify.verdict == 'PASS'"
+            if: "${{ steps.attempt.output.verify.verdict == 'PASS' }}"
             uses: ./lib/git-commit.ts
             with:
               worktree_path: "${{ steps.worktree.output.worktree_path }}"
@@ -101,7 +102,7 @@ phases:
         # build, worktree, models are from prior phases — all inherited, no needs required
         loop:
           maxIterations: 3
-          until: "steps.filter.output.actionable.length == 0"
+          until: "${{ steps.filter.output.actionable.length == 0 }}"
         steps:
           - id: scout
             agent: ./agents/scout.md
@@ -149,10 +150,10 @@ phases:
           - id: repair
             needs: [filter]
             # worktree, models are from Setup phase (inherited — no needs required)
-            if: "steps.filter.output.actionable.length > 0"
+            if: "${{ steps.filter.output.actionable.length > 0 }}"
             foreach: "${{ steps.filter.output.actionable }}"
             as: finding
-            key: "${{ finding.summary }}"
+            key: "${{ finding.file + '::' + finding.summary }}"
             concurrency: 5
             steps:
               - id: fix
@@ -182,7 +183,7 @@ phases:
 
               - id: commit-fix
                 needs: [verify-fix]
-                if: "steps.verify-fix.output.verdict == 'PASS'"
+                if: "${{ steps['verify-fix'].output.verdict == 'PASS' }}"
                 uses: ./lib/git-commit.ts
                 with:
                   worktree_path: "${{ steps.worktree.output.worktree_path }}"
@@ -191,11 +192,11 @@ phases:
   - name: Docking
     steps:
       - id: push
-        # worktree is from Setup, plan is from Plan phase — both inherited
+        # worktree is from Setup — use the real branch it created, not the director's guess
         uses: ./lib/git-push.ts
         with:
           worktree_path: "${{ steps.worktree.output.worktree_path }}"
-          branch: "${{ steps.plan.output.branch }}"
+          branch: "${{ steps.worktree.output.branch }}"
 
       - id: pr
         needs: [push]
@@ -203,6 +204,6 @@ phases:
         uses: ./lib/gh-pr.ts
         with:
           repo: "${{ inputs.repo }}"
-          branch: "${{ steps.plan.output.branch }}"
+          branch: "${{ steps.worktree.output.branch }}"
           title: "${{ steps.plan.output.issue_title }}"
           body: "## Summary\n\nImplements #${{ inputs.issue }}: ${{ steps.plan.output.issue_title }}\n\nCloses #${{ inputs.issue }}"

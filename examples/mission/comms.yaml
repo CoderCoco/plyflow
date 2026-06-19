@@ -90,14 +90,15 @@ phases:
   - name: Downlink
     steps:
       - id: push
+        needs: [fetch]
         uses: ./lib/git-push.ts
         with:
           worktree_path: "${{ inputs.worktree_path }}"
-          branch: "${{ inputs.pr }}"
+          branch: "${{ steps.fetch.output.headRefName }}"
 
       - id: notify
         needs: [push]
-        uses: ./lib/gh-comments.ts
+        uses: ./lib/post-comment.ts
         with:
           repo: "${{ inputs.repo }}"
           pr: "${{ inputs.pr }}"
