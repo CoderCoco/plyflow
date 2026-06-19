@@ -32,7 +32,7 @@ The package exports the following from `plyflow` (i.e. `dist/index.js`):
 
 ```typescript
 import { runWorkflow, buildDefaultRegistry } from 'plyflow';
-import { ClaudeProvider } from 'plyflow/dist/providers/claude.js';
+import { ClaudeProvider } from 'plyflow';
 
 const provider = new ClaudeProvider({ mode: 'api' }); // reads ANTHROPIC_API_KEY
 
@@ -130,7 +130,7 @@ const loggingProvider: AIProvider = {
 
 ```typescript
 import { runWorkflow, buildDefaultRegistry } from 'plyflow';
-import { FakeProvider } from 'plyflow/dist/providers/fake.js';
+import { FakeProvider } from 'plyflow';
 import { describe, it, expect } from 'vitest';
 
 describe('summarize workflow', () => {
@@ -160,7 +160,7 @@ If you only need a subset of built-in steps, or want to add custom step types wi
 ```typescript
 import { buildDefaultRegistry, runWorkflow } from 'plyflow';
 // Import StepType from the built package
-import type { StepType } from 'plyflow/dist/steps/types.js';
+import type { StepType } from 'plyflow';
 
 const registry = buildDefaultRegistry();
 
@@ -186,8 +186,8 @@ await runWorkflow('./workflow.yaml', { provider, registry });
 | `agent-sdk` | Uses `@anthropic-ai/claude-agent-sdk` with full tool access | Claude Code creds; Node ≥22 (Node 24 recommended) |
 
 ```typescript
-import { ClaudeProvider } from 'plyflow/dist/providers/claude.js';
-import { makeProvider } from 'plyflow/dist/providers/factory.js';
+import { ClaudeProvider } from 'plyflow';
+import { makeProvider } from 'plyflow';
 
 // Explicit constructor:
 const provider = new ClaudeProvider({ mode: 'cli' });
