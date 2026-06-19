@@ -34,6 +34,10 @@ export interface StepDef {
   loop?: { maxIterations: number; until?: string };
   /** Dynamic fan-out over a runtime array. */
   foreach?: string;
+  /** Path to a custom Ink/React widget component (.tsx). */
+  widget?: string;
+  /** Default value returned when the step runs in non-TTY mode (no prompt available). */
+  default?: unknown;
   /** Binding name for the current element (default: 'item'). */
   as?: string;
   /** Expression that produces the element's identity key (default: array index as string). */

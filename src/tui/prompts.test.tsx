@@ -6,7 +6,7 @@ import { Prompt } from './prompts.js';
 describe('Prompt', () => {
   it('resolves true when confirming with "y"', async () => {
     const onResolve = vi.fn();
-    const { stdin } = render(<Prompt request={{ type: 'confirm', message: 'ok?' }} onResolve={onResolve} />);
+    const { stdin } = render(<Prompt request={{ kind: 'prompt', type: 'confirm', message: 'ok?' }} onResolve={onResolve} />);
     // Wait for component to mount and be ready to receive input
     await new Promise((r) => setImmediate(r));
     stdin.write('y');
@@ -15,7 +15,7 @@ describe('Prompt', () => {
   });
 
   it('renders the message for a text prompt', () => {
-    const { lastFrame } = render(<Prompt request={{ type: 'text', message: 'name?' }} onResolve={() => {}} />);
+    const { lastFrame } = render(<Prompt request={{ kind: 'prompt', type: 'text', message: 'name?' }} onResolve={() => {}} />);
     expect(lastFrame()).toContain('name?');
   });
 });

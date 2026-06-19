@@ -7,7 +7,7 @@ import { runWorkflow, type EngineEvent } from '../core/engine.js';
 import { makeProvider } from '../providers/factory.js';
 import { LineLogger } from '../tui/logger.js';
 import { App } from '../tui/App.js';
-import type { PromptRequest } from '../steps/types.js';
+import type { UiRequest } from '../steps/types.js';
 
 function coerceInputs(
   raw: Record<string, string>,
@@ -59,7 +59,7 @@ export async function main(argv: string[]): Promise<void> {
     push = null;
   };
 
-  let promptHandler: ((stepId: string, req: PromptRequest) => Promise<unknown>) | null = null;
+  let promptHandler: ((stepId: string, req: UiRequest) => Promise<unknown>) | null = null;
   const { waitUntilExit } = render(
     React.createElement(App, {
       workflow: wf,

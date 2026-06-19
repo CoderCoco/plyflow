@@ -31,6 +31,7 @@ function makeScope(events: EngineEvent[]) {
     journal,
     journalPath: 'phase:Test',
     dirty: new Set(),
+    isTty: true,
     loadModule: async (_path: string) => ({}),
     emit: (e) => events.push(e),
     prompt: () => Promise.reject(new Error('no prompt')),

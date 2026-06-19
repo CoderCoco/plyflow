@@ -3,19 +3,19 @@ import { Box, useApp } from 'ink';
 import { ProgressTree, type PhaseView, type StepView } from './ProgressTree.js';
 import { Prompt } from './prompts.js';
 import type { EngineEvent } from '../core/engine.js';
-import type { PromptRequest } from '../steps/types.js';
+import type { UiRequest, PromptRequest } from '../steps/types.js';
 import type { WorkflowFile } from '../core/types.js';
 
-interface PendingPrompt {
+interface PendingUi {
   stepId: string;
-  request: PromptRequest;
+  request: UiRequest;
   resolve: (value: unknown) => void;
 }
 
 export interface AppProps {
   workflow: WorkflowFile;
   events: AsyncIterable<EngineEvent>;
-  registerPrompt: (handler: (stepId: string, req: PromptRequest) => Promise<unknown>) => void;
+  registerPrompt: (handler: (stepId: string, req: UiRequest) => Promise<unknown>) => void;
   onDone: () => void;
 }
 
@@ -29,7 +29,7 @@ function initialPhases(wf: WorkflowFile): PhaseView[] {
 export function App({ workflow, events, registerPrompt, onDone }: AppProps): React.ReactElement {
   const { exit } = useApp();
   const [phases, setPhases] = useState<PhaseView[]>(() => initialPhases(workflow));
-  const [pending, setPending] = useState<PendingPrompt | null>(null);
+  const [pending, setPending] = useState<PendingUi | null>(null);
 
   const setStatus = (id: string, patch: Partial<StepView>) =>
     setPhases((prev) =>
@@ -52,10 +52,19 @@ export function App({ workflow, events, registerPrompt, onDone }: AppProps): Rea
     })();
   }, []);
 
+  function renderPending(p: PendingUi): React.ReactElement | null {
+    if (p.request.kind === 'prompt') {
+      // Cast is safe: PromptRequest is exactly the prompt-kind of UiRequest.
+      return <Prompt request={p.request as PromptRequest} onResolve={p.resolve} />;
+    }
+    // TODO(A3): widget kind — load and mount the custom component via the module loader.
+    throw new Error('widget rendering not yet wired (Task A3)');
+  }
+
   return (
     <Box flexDirection="column">
       <ProgressTree phases={phases} />
-      {pending && <Prompt request={pending.request} onResolve={pending.resolve} />}
+      {pending && renderPending(pending)}
     </Box>
   );
 }

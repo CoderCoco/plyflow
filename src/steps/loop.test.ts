@@ -38,6 +38,7 @@ function makeCtxWithRunChildren(tmpDir?: string, journalPath = 'test'): StepCont
     journal,
     journalPath,
     dirty: new Set(),
+    isTty: true,
     loadModule: noopLoadModule,
     emit: () => {},
     prompt: async () => undefined,
@@ -50,6 +51,7 @@ function makeCtxWithRunChildren(tmpDir?: string, journalPath = 'test'): StepCont
     with: {},
     provider,
     baseDir,
+    isTty: true,
     loadModule: noopLoadModule,
     emit: () => {},
     prompt: async () => undefined,
@@ -73,6 +75,7 @@ function makeRootScope(tmpDir: string, journalPath = 'test') {
       journal,
       journalPath,
       dirty: new Set(),
+      isTty: true,
       loadModule: noopLoadModule,
       emit: () => {},
       prompt: async () => undefined,
@@ -151,7 +154,7 @@ describe('loop step', () => {
     const cfg = loop.parse(loopDef);
     const ctx: StepContext = {
       inputs: {}, env: {}, steps: {}, with: {},
-      provider, baseDir: '.', emit: () => {}, prompt: async () => undefined,
+      provider, baseDir: '.', isTty: true, emit: () => {}, prompt: async () => undefined,
       loadModule: noopLoadModule,
     };
     await expect(loop.run(cfg, ctx)).rejects.toThrow('runChildren');
@@ -293,6 +296,7 @@ describe('Fix D — until bindings contain iteration, not ctx.with', () => {
         journal,
         journalPath: 'phase:Test',
         dirty: new Set(),
+        isTty: true,
         loadModule: noopLoadModule,
         emit: () => {},
         prompt: async () => undefined,
@@ -318,6 +322,7 @@ describe('Fix D — until bindings contain iteration, not ctx.with', () => {
         with: { secretVal: 42 },
         provider,
         baseDir: tmpDir,
+        isTty: true,
         loadModule: noopLoadModule,
         emit: () => {},
         prompt: async () => undefined,

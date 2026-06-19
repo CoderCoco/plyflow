@@ -41,22 +41,27 @@ const stepDef: z.ZodType<any> = z.lazy(() =>
       model: z.string().optional(),
       mode: z.string().optional(),
       params: z.record(z.string(), z.unknown()).optional(),
+      widget: z.string().optional(),
+      default: z.unknown().optional(),
     })
     .refine(
-      (s) =>
-        ['run', 'uses', 'agent', 'input', 'parallel', 'loop', 'foreach'].filter(
-          (k) => s[k] !== undefined,
-        ).length === 1,
+      (s) => {
+        const r = s as Record<string, unknown>;
+        return ['run', 'uses', 'agent', 'input', 'parallel', 'loop', 'foreach', 'widget'].filter(
+          (k) => r[k] !== undefined,
+        ).length === 1;
+      },
       {
         message:
-          'a step must have exactly one type key: run | uses | agent | input | parallel | loop | foreach',
+          'a step must have exactly one type key: run | uses | agent | input | parallel | loop | foreach | widget',
       },
     )
     .superRefine((s, ctx) => {
+      const r = s as Record<string, unknown>;
       // Composite step types that orchestrate child steps must provide a non-empty steps array.
       const compositesRequiringSteps: string[] = ['loop', 'foreach'];
       for (const key of compositesRequiringSteps) {
-        if (s[key] !== undefined && (!Array.isArray(s['steps']) || s['steps'].length === 0)) {
+        if (r[key] !== undefined && (!Array.isArray(s['steps']) || s['steps'].length === 0)) {
           ctx.addIssue({
             code: 'custom',
             path: ['steps'],

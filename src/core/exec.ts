@@ -2,7 +2,7 @@ import { resolve as resolveExpr, type ExprContext } from './expression.js';
 import { planPhase } from './scheduler.js';
 import { Journal, hashStep } from './journal.js';
 import { StepRegistry } from '../steps/registry.js';
-import type { StepContext, PromptRequest } from '../steps/types.js';
+import type { StepContext, UiRequest } from '../steps/types.js';
 import type { AIProvider } from '../providers/types.js';
 import type { StepDef } from './types.js';
 import type { EngineEvent } from './engine.js';
@@ -19,9 +19,10 @@ export interface ExecScope {
   journal: Journal;
   journalPath: string;
   dirty: Set<string>;
+  isTty: boolean;
   loadModule(path: string): Promise<unknown>;
   emit(e: EngineEvent): void;
-  prompt(stepId: string, req: PromptRequest): Promise<unknown>;
+  prompt(stepId: string, req: UiRequest): Promise<unknown>;
   runChildren(
     steps: StepDef[],
     extraBindings: Record<string, unknown>,
@@ -38,9 +39,10 @@ export interface RootScopeOptions {
   journal: Journal;
   journalPath: string;
   dirty: Set<string>;
+  isTty: boolean;
   loadModule(path: string): Promise<unknown>;
   emit(e: EngineEvent): void;
-  prompt(stepId: string, req: PromptRequest): Promise<unknown>;
+  prompt(stepId: string, req: UiRequest): Promise<unknown>;
 }
 
 function makeRunChildren(
@@ -69,6 +71,7 @@ function makeRunChildren(
       journal: parentScope.journal,
       journalPath: `${parentScope.journalPath}/${subPath}`,
       dirty: parentScope.dirty,
+      isTty: parentScope.isTty,
       loadModule: parentScope.loadModule,
       emit: parentScope.emit,
       prompt: parentScope.prompt,
@@ -93,6 +96,7 @@ export function createRootScope(opts: RootScopeOptions): ExecScope {
     journal: opts.journal,
     journalPath: opts.journalPath,
     dirty: opts.dirty,
+    isTty: opts.isTty,
     loadModule: opts.loadModule,
     emit: opts.emit,
     prompt: opts.prompt,
@@ -192,6 +196,7 @@ export async function runSteps(
       bindings: scope.bindings,
       provider: scope.provider,
       baseDir: scope.baseDir,
+      isTty: scope.isTty,
       loadModule: scope.loadModule,
       resolve: (value: unknown) => resolveExpr(value, exprCtx()),
       emit: (ev) => {

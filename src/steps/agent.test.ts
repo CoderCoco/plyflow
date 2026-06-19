@@ -10,6 +10,7 @@ const baseDir = dirname(fileURLToPath(new URL('./__fixtures__/x', import.meta.ur
 const loader = createLoader({ baseDir });
 const ctx = (provider: any, over: Partial<StepContext> = {}): StepContext => ({
   inputs: {}, env: {}, steps: {}, with: {}, provider, baseDir,
+  isTty: true,
   emit: () => {}, prompt: async () => undefined,
   loadModule: loader.import.bind(loader), ...over,
 });

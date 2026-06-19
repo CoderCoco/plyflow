@@ -7,7 +7,7 @@ import { inputStep } from '../steps/input.js';
 import { makeParallelStep } from '../steps/parallel.js';
 import { makeLoopStep } from '../steps/loop.js';
 import { makeForeachStep } from '../steps/foreach.js';
-import type { PromptRequest } from '../steps/types.js';
+import type { UiRequest } from '../steps/types.js';
 import type { AIProvider } from '../providers/types.js';
 import { createRootScope, runSteps } from './exec.js';
 import { createLoader } from './module-loader.js';
@@ -28,7 +28,9 @@ export interface RunOptions {
   provider: AIProvider;
   registry?: StepRegistry;
   onEvent?: (e: EngineEvent) => void;
-  prompt?: (stepId: string, req: PromptRequest) => Promise<unknown>;
+  prompt?: (stepId: string, req: UiRequest) => Promise<unknown>;
+  /** Override TTY detection; defaults to !!process.stdout.isTTY. Useful for tests. */
+  isTty?: boolean;
   /** Injectable exec for running npm commands in prepareEnv; defaults to real npm. Useful for tests. */
   exec?: Exec;
 }
@@ -97,6 +99,7 @@ export async function runWorkflow(
   const dirty = new Set<string>();
 
   const prompt = opts.prompt ?? ((stepId: string) => Promise.reject(new Error(`no prompt handler provided for step "${stepId}"`)));
+  const isTty = opts.isTty !== undefined ? opts.isTty : !!process.stdout.isTTY;
 
   try {
     for (const phase of wf.phases) {
@@ -111,6 +114,7 @@ export async function runWorkflow(
         journal,
         journalPath: `phase:${phase.name}`,
         dirty,
+        isTty,
         loadModule: (path) => loader.import(path),
         emit,
         prompt,
