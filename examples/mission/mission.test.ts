@@ -151,4 +151,49 @@ describe('mission.yaml', () => {
     expect(commitFix['if']).toContain('steps.verify-fix.output.verdict');
     expect(commitFix.needs).toContain('verify-fix');
   });
+
+  // -------------------------------------------------------------------------
+  // Docking phase assertions
+  // -------------------------------------------------------------------------
+
+  it('has a Docking phase', async () => {
+    const wf = await loadWorkflow(missionYaml);
+    const phaseNames = wf.phases.map((p) => p.name);
+    expect(phaseNames).toContain('Docking');
+  });
+
+  it('Docking phase has push and pr steps', async () => {
+    const wf = await loadWorkflow(missionYaml);
+    const docking = wf.phases.find((p) => p.name === 'Docking')!;
+    expect(docking).toBeDefined();
+    const stepIds = docking.steps.map((s) => s.id);
+    expect(stepIds).toContain('push');
+    expect(stepIds).toContain('pr');
+  });
+
+  it('Docking push step uses git-push and needs worktree and plan', async () => {
+    const wf = await loadWorkflow(missionYaml);
+    const docking = wf.phases.find((p) => p.name === 'Docking')!;
+    const push = docking.steps.find((s) => s.id === 'push')!;
+    expect(push).toBeDefined();
+    expect(push.uses).toContain('git-push');
+    expect(push.needs).toContain('worktree');
+    expect(push.needs).toContain('plan');
+  });
+
+  it('Docking pr step needs push and plan', async () => {
+    const wf = await loadWorkflow(missionYaml);
+    const docking = wf.phases.find((p) => p.name === 'Docking')!;
+    const pr = docking.steps.find((s) => s.id === 'pr')!;
+    expect(pr).toBeDefined();
+    expect(pr.needs).toContain('push');
+    expect(pr.needs).toContain('plan');
+  });
+
+  it('Docking pr step uses gh-pr', async () => {
+    const wf = await loadWorkflow(missionYaml);
+    const docking = wf.phases.find((p) => p.name === 'Docking')!;
+    const pr = docking.steps.find((s) => s.id === 'pr')!;
+    expect(pr.uses).toContain('gh-pr');
+  });
 });

@@ -186,3 +186,21 @@ phases:
                 with:
                   worktree_path: "${{ steps.worktree.output.worktree_path }}"
                   message: "fix: ${{ finding.summary }}\n\nRefs #${{ inputs.issue }}"
+
+  - name: Docking
+    steps:
+      - id: push
+        needs: [worktree, plan]
+        uses: ./lib/git-push.ts
+        with:
+          worktree_path: "${{ steps.worktree.output.worktree_path }}"
+          branch: "${{ steps.plan.output.branch }}"
+
+      - id: pr
+        needs: [push, plan, worktree, models]
+        uses: ./lib/gh-pr.ts
+        with:
+          repo: "${{ inputs.repo }}"
+          branch: "${{ steps.plan.output.branch }}"
+          title: "${{ steps.plan.output.issue_title }}"
+          body: "## Summary\n\nImplements #${{ inputs.issue }}: ${{ steps.plan.output.issue_title }}\n\nCloses #${{ inputs.issue }}"
