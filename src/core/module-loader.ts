@@ -72,33 +72,37 @@ async function tryImportProvided(specifier: string): Promise<unknown | undefined
 export function createLoader(opts: LoaderOptions): ModuleLoader {
   const provided = opts.provided ?? DEFAULT_PROVIDED;
 
-  // Lazily-initialised jiti instance, populated on first import().
-  let jitiImport: ((abs: string) => Promise<unknown>) | undefined;
+  // Lazily-initialised jiti instance. Memoise the PROMISE (not the resolved
+  // value) so that concurrent callers — e.g. parallel `foreach`/`parallel`
+  // steps loading modules at once — all await the SAME initialisation and
+  // share one jiti instance, rather than each racing to build its own.
+  let jitiPromise: Promise<(abs: string) => Promise<unknown>> | undefined;
 
-  async function ensureJiti(): Promise<(abs: string) => Promise<unknown>> {
-    if (jitiImport) return jitiImport;
+  function ensureJiti(): Promise<(abs: string) => Promise<unknown>> {
+    if (jitiPromise) return jitiPromise;
+    jitiPromise = (async () => {
+      // Build virtualModules: specifier → plyflow's own module namespace object.
+      const virtualModules: Record<string, unknown> = {};
+      await Promise.all(
+        provided.map(async (spec) => {
+          const mod = await tryImportProvided(spec);
+          if (mod !== undefined) {
+            virtualModules[spec] = mod;
+          }
+        }),
+      );
 
-    // Build virtualModules: specifier → plyflow's own module namespace object.
-    const virtualModules: Record<string, unknown> = {};
-    await Promise.all(
-      provided.map(async (spec) => {
-        const mod = await tryImportProvided(spec);
-        if (mod !== undefined) {
-          virtualModules[spec] = mod;
-        }
-      }),
-    );
-
-    const jiti = createJiti(import.meta.url, {
-      virtualModules,
-      // Disable jiti's interopDefault proxy.  When enabled, the proxy wraps
-      // the default export in a Function, which breaks `instanceof` checks on
-      // class instances (e.g. `schema instanceof z.ZodType`).  Disabling it
-      // returns the raw module namespace, so identity checks work correctly.
-      interopDefault: false,
-    });
-    jitiImport = (abs: string) => jiti.import(abs);
-    return jitiImport;
+      const jiti = createJiti(import.meta.url, {
+        virtualModules,
+        // Disable jiti's interopDefault proxy.  When enabled, the proxy wraps
+        // the default export in a Function, which breaks `instanceof` checks on
+        // class instances (e.g. `schema instanceof z.ZodType`).  Disabling it
+        // returns the raw module namespace, so identity checks work correctly.
+        interopDefault: false,
+      });
+      return (abs: string) => jiti.import(abs);
+    })();
+    return jitiPromise;
   }
 
   return {
