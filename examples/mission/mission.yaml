@@ -94,3 +94,95 @@ phases:
             with:
               worktree_path: "${{ steps.worktree.output.worktree_path }}"
               message: "feat(${{ task.name }}): ${{ task.title }}\n\nRefs #${{ inputs.issue }}"
+
+  - name: Review
+    steps:
+      - id: review
+        needs: [build, worktree, models]
+        loop:
+          maxIterations: 3
+          until: "steps.filter.output.actionable.length == 0"
+        steps:
+          - id: scout
+            agent: ./agents/scout.md
+            model: "${{ steps.models.output.utility }}"
+            params:
+              cwd: "${{ steps.worktree.output.worktree_path }}"
+              allowedTools: ["Read", "Grep", "Glob", "Bash"]
+            prompt: |
+              Scan the branch diff, identify which language buckets have changed files,
+              list those files, and list which specialist reviewers are needed.
+              Issue #${{ inputs.issue }}
+            output: ./schemas/ScoutResult.ts
+
+          - id: inspect
+            needs: [scout]
+            foreach: "${{ steps.scout.output.buckets }}"
+            as: bucket
+            key: "${{ bucket }}"
+            steps:
+              - id: review-bucket
+                agent: ./agents/systems-inspector.md
+                model: "${{ steps.models.output.inspector }}"
+                params:
+                  cwd: "${{ steps.worktree.output.worktree_path }}"
+                  allowedTools: ["Read", "Grep", "Glob", "Bash"]
+                prompt: |
+                  Bucket: ${{ bucket }}
+                  Changed files for this bucket: ${{ steps.scout.output.changed_files }}
+                  Review all files in the ${{ bucket }} bucket against the rubric and report findings.
+                output: ./schemas/InspectorFindings.ts
+
+          - id: flatten
+            needs: [inspect]
+            uses: ./lib/flatten-findings.ts
+            with:
+              inspect: "${{ steps.inspect.output }}"
+
+          - id: filter
+            needs: [flatten, scout]
+            uses: ./lib/findings-filter.ts
+            with:
+              findings: "${{ steps.flatten.output.findings }}"
+              changed_files: "${{ steps.scout.output.changed_files }}"
+
+          - id: repair
+            needs: [filter, worktree, models]
+            if: "steps.filter.output.actionable.length > 0"
+            foreach: "${{ steps.filter.output.actionable }}"
+            as: finding
+            key: "${{ finding.summary }}"
+            concurrency: 5
+            steps:
+              - id: fix
+                agent: ./agents/astronaut.md
+                model: "${{ steps.models.output.astronaut }}"
+                params:
+                  cwd: "${{ steps.worktree.output.worktree_path }}"
+                prompt: |
+                  Fix the following finding:
+                  File: ${{ finding.file }}
+                  Summary: ${{ finding.summary }}
+                  Suggestion: ${{ finding.suggestion }}
+                output: ./schemas/AstronautReport.ts
+
+              - id: verify-fix
+                needs: [fix]
+                agent: ./agents/flight-controller.md
+                model: "${{ steps.models.output.controller }}"
+                params:
+                  cwd: "${{ steps.worktree.output.worktree_path }}"
+                  allowedTools: ["Read", "Grep", "Glob", "Bash"]
+                prompt: |
+                  Verify the fix for: ${{ finding.summary }}
+                  File: ${{ finding.file }}
+                  Astronaut summary: ${{ steps.fix.output.summary }}
+                output: ./schemas/ControllerVerdict.ts
+
+              - id: commit-fix
+                needs: [verify-fix]
+                if: "steps.verify-fix.output.verdict == 'PASS'"
+                uses: ./lib/git-commit.ts
+                with:
+                  worktree_path: "${{ steps.worktree.output.worktree_path }}"
+                  message: "fix: ${{ finding.summary }}\n\nRefs #${{ inputs.issue }}"

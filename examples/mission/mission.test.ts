@@ -99,4 +99,56 @@ describe('mission.yaml', () => {
     expect(commit['if']).toBeDefined();
     expect(commit['if']).toContain('steps.attempt.output.verify.verdict');
   });
+
+  it('has a Review phase', async () => {
+    const wf = await loadWorkflow(missionYaml);
+    const phaseNames = wf.phases.map((p) => p.name);
+    expect(phaseNames).toContain('Review');
+  });
+
+  it('review step is a loop with maxIterations:3 and until referencing filter.output.actionable', async () => {
+    const wf = await loadWorkflow(missionYaml);
+    const review = wf.phases.find((p) => p.name === 'Review')!;
+    const reviewStep = review.steps.find((s) => s.id === 'review')!;
+    expect(reviewStep).toBeDefined();
+    expect(reviewStep.loop).toBeDefined();
+    expect(reviewStep.loop!.maxIterations).toBe(3);
+    expect(reviewStep.loop!.until).toContain('steps.filter.output.actionable');
+    expect(reviewStep.needs).toContain('build');
+    expect(reviewStep.needs).toContain('worktree');
+    expect(reviewStep.needs).toContain('models');
+  });
+
+  it('review loop has inspect foreach referencing steps.scout.output.buckets with needs:[scout]', async () => {
+    const wf = await loadWorkflow(missionYaml);
+    const review = wf.phases.find((p) => p.name === 'Review')!;
+    const reviewStep = review.steps.find((s) => s.id === 'review')!;
+    const inspect = reviewStep.steps?.find((s: any) => s.id === 'inspect');
+    expect(inspect).toBeDefined();
+    expect(inspect.foreach).toContain('steps.scout.output.buckets');
+    expect(inspect.needs).toContain('scout');
+  });
+
+  it('review loop has repair foreach with if guard and needs:[filter]', async () => {
+    const wf = await loadWorkflow(missionYaml);
+    const review = wf.phases.find((p) => p.name === 'Review')!;
+    const reviewStep = review.steps.find((s) => s.id === 'review')!;
+    const repair = reviewStep.steps?.find((s: any) => s.id === 'repair');
+    expect(repair).toBeDefined();
+    expect(repair['if']).toBeDefined();
+    expect(repair['if']).toContain('steps.filter.output.actionable.length');
+    expect(repair.needs).toContain('filter');
+    expect(repair.foreach).toContain('steps.filter.output.actionable');
+  });
+
+  it('repair foreach has commit-fix child with if referencing verify-fix verdict', async () => {
+    const wf = await loadWorkflow(missionYaml);
+    const review = wf.phases.find((p) => p.name === 'Review')!;
+    const reviewStep = review.steps.find((s) => s.id === 'review')!;
+    const repair = reviewStep.steps?.find((s: any) => s.id === 'repair');
+    const commitFix = repair?.steps?.find((s: any) => s.id === 'commit-fix');
+    expect(commitFix).toBeDefined();
+    expect(commitFix['if']).toContain('steps.verify-fix.output.verdict');
+    expect(commitFix.needs).toContain('verify-fix');
+  });
 });
