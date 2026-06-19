@@ -34,6 +34,11 @@ export default async function gitCommit(
   _ctx?: unknown,
   exec: Exec = defaultExec,
 ): Promise<GitCommitResult> {
+  // Dry-run: skip all git operations.
+  if (process.env.MISSION_DRYRUN === '1') {
+    return { committed: true, sha: '0000000000000000000000000000000000000000' };
+  }
+
   const cwd = input.worktree_path;
 
   // Check porcelain status — empty means nothing to commit

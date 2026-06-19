@@ -18,6 +18,11 @@ export default async function gitPush(
   _ctx?: unknown,
   exec: Exec = defaultExec,
 ): Promise<GitPushResult> {
+  // Dry-run: skip the push.
+  if (process.env.MISSION_DRYRUN === '1') {
+    return { pushed: true };
+  }
+
   const { code, stderr } = await exec(
     'git',
     ['push', '-u', 'origin', input.branch],

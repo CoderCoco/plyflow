@@ -60,6 +60,17 @@ export async function fetchComments(
   _ctx?: unknown,
   exec: Exec = defaultExec,
 ): Promise<FetchCommentsOutput> {
+  // Dry-run: return an empty/safe PR state without calling gh.
+  if (process.env.MISSION_DRYRUN === '1') {
+    return {
+      merged: false,
+      ci_passing: true,
+      comments: [],
+      reviewThreads: [],
+      reviews: [],
+    };
+  }
+
   const { pr, repo, since } = input;
 
   const args = ['pr', 'view', String(pr), '--json', PR_JSON_FIELDS];

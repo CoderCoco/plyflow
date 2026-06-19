@@ -51,6 +51,11 @@ export default async function ghPr(
   _ctx?: unknown,
   exec: Exec = defaultExec,
 ): Promise<GhPrResult> {
+  // Dry-run: return a synthetic PR without calling gh.
+  if (process.env.MISSION_DRYRUN === '1') {
+    return { pr_number: 1, pr_url: 'https://github.com/dry-run/repo/pull/1' };
+  }
+
   // Check for an existing PR
   const listArgs = [
     'pr',

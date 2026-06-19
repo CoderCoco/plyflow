@@ -33,7 +33,7 @@ describe('mission.yaml', () => {
     expect(worktree.needs).toContain('issue');
   });
 
-  it('plan step has agent, output referencing Plan.ts, model override, and needs [issue, worktree, models]', async () => {
+  it('plan step has agent, output referencing Plan.ts, and model override (no cross-phase needs)', async () => {
     const wf = await loadWorkflow(missionYaml);
     const plan = wf.phases.find((p) => p.name === 'Plan')!;
     const planStep = plan.steps.find((s) => s.id === 'plan')!;
@@ -42,9 +42,9 @@ describe('mission.yaml', () => {
     expect(planStep.output).toBeDefined();
     expect(planStep.output).toContain('Plan.ts');
     expect(planStep.model).toBeDefined();
-    expect(planStep.needs).toContain('issue');
-    expect(planStep.needs).toContain('worktree');
-    expect(planStep.needs).toContain('models');
+    // issue, worktree, models are from Setup (inherited cross-phase — no needs required)
+    expect(planStep.needs ?? []).not.toContain('issue');
+    expect(planStep.needs ?? []).not.toContain('worktree');
   });
 
   it('ready step is an input confirm after plan', async () => {
@@ -62,22 +62,27 @@ describe('mission.yaml', () => {
     expect(phaseNames).toContain('Build');
   });
 
-  it('build step is a foreach over steps.plan.output.tasks', async () => {
+  it('build step is a foreach over steps.plan.output.tasks (no cross-phase needs)', async () => {
     const wf = await loadWorkflow(missionYaml);
     const build = wf.phases.find((p) => p.name === 'Build')!;
     const buildStep = build.steps.find((s) => s.id === 'build')!;
     expect(buildStep).toBeDefined();
     expect(buildStep.foreach).toContain('steps.plan.output.tasks');
-    expect(buildStep.needs).toContain('plan');
+    // plan, ready, worktree, models are from prior phases — inherited, no needs required
+    expect(buildStep.needs ?? []).not.toContain('plan');
+    expect(buildStep.needs ?? []).not.toContain('worktree');
   });
 
-  it('build step declares needs including plan, worktree, models', async () => {
+  it('build step has no cross-phase needs (cross-phase data flows via inheritedSteps)', async () => {
     const wf = await loadWorkflow(missionYaml);
     const build = wf.phases.find((p) => p.name === 'Build')!;
     const buildStep = build.steps.find((s) => s.id === 'build')!;
-    expect(buildStep.needs).toContain('plan');
-    expect(buildStep.needs).toContain('worktree');
-    expect(buildStep.needs).toContain('models');
+    // Cross-phase steps (plan, worktree, models, ready) must NOT appear in needs —
+    // the scheduler only resolves within-phase/within-scope deps.
+    const crossPhaseIds = ['plan', 'worktree', 'models', 'ready'];
+    for (const id of crossPhaseIds) {
+      expect(buildStep.needs ?? []).not.toContain(id);
+    }
   });
 
   it('build foreach has attempt loop child with until referencing verify verdict', async () => {
@@ -106,7 +111,7 @@ describe('mission.yaml', () => {
     expect(phaseNames).toContain('Review');
   });
 
-  it('review step is a loop with maxIterations:3 and until referencing filter.output.actionable', async () => {
+  it('review step is a loop with maxIterations:3 and until referencing filter.output.actionable (no cross-phase needs)', async () => {
     const wf = await loadWorkflow(missionYaml);
     const review = wf.phases.find((p) => p.name === 'Review')!;
     const reviewStep = review.steps.find((s) => s.id === 'review')!;
@@ -114,9 +119,10 @@ describe('mission.yaml', () => {
     expect(reviewStep.loop).toBeDefined();
     expect(reviewStep.loop!.maxIterations).toBe(3);
     expect(reviewStep.loop!.until).toContain('steps.filter.output.actionable');
-    expect(reviewStep.needs).toContain('build');
-    expect(reviewStep.needs).toContain('worktree');
-    expect(reviewStep.needs).toContain('models');
+    // build, worktree, models are from prior phases — inherited, no needs required
+    expect(reviewStep.needs ?? []).not.toContain('build');
+    expect(reviewStep.needs ?? []).not.toContain('worktree');
+    expect(reviewStep.needs ?? []).not.toContain('models');
   });
 
   it('review loop has inspect foreach referencing steps.scout.output.buckets with needs:[scout]', async () => {
@@ -171,23 +177,26 @@ describe('mission.yaml', () => {
     expect(stepIds).toContain('pr');
   });
 
-  it('Docking push step uses git-push and needs worktree and plan', async () => {
+  it('Docking push step uses git-push (no cross-phase needs — worktree and plan are inherited)', async () => {
     const wf = await loadWorkflow(missionYaml);
     const docking = wf.phases.find((p) => p.name === 'Docking')!;
     const push = docking.steps.find((s) => s.id === 'push')!;
     expect(push).toBeDefined();
     expect(push.uses).toContain('git-push');
-    expect(push.needs).toContain('worktree');
-    expect(push.needs).toContain('plan');
+    // worktree and plan are from prior phases (inherited) — no needs required
+    expect(push.needs ?? []).not.toContain('worktree');
+    expect(push.needs ?? []).not.toContain('plan');
   });
 
-  it('Docking pr step needs push and plan', async () => {
+  it('Docking pr step needs only push (same-phase); plan/worktree/models are inherited', async () => {
     const wf = await loadWorkflow(missionYaml);
     const docking = wf.phases.find((p) => p.name === 'Docking')!;
     const pr = docking.steps.find((s) => s.id === 'pr')!;
     expect(pr).toBeDefined();
     expect(pr.needs).toContain('push');
-    expect(pr.needs).toContain('plan');
+    // plan, worktree, models from prior phases — no needs required
+    expect(pr.needs ?? []).not.toContain('plan');
+    expect(pr.needs ?? []).not.toContain('worktree');
   });
 
   it('Docking pr step uses gh-pr', async () => {

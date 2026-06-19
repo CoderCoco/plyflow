@@ -27,6 +27,19 @@ export default async function gitWorktree(
   exec: Exec = defaultExec,
 ): Promise<GitWorktreeResult> {
   const { issue, slug, base = 'main' } = input;
+
+  // Dry-run: return a synthetic branch/path without touching git.
+  if (process.env.MISSION_DRYRUN === '1') {
+    const slugPart = slug
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 40)
+      .replace(/-+$/g, '');
+    const branch = `claude/issue-${issue}-${slugPart}`;
+    const worktree_path = `.claude/worktrees/issue-${issue}-${slugPart}`;
+    return { branch, worktree_path };
+  }
   const slugPart = slugify(slug);
   const branch = `claude/issue-${issue}-${slugPart}`;
   const worktree_path = `.claude/worktrees/issue-${issue}-${slugPart}`;

@@ -29,7 +29,7 @@ phases:
   - name: Plan
     steps:
       - id: plan
-        needs: [issue, worktree, models]
+        # issue, worktree, models are from the Setup phase (inherited — no needs required)
         agent: ./agents/flight-director.md
         model: "${{ steps.models.output.director }}"
         params:
@@ -50,7 +50,7 @@ phases:
   - name: Build
     steps:
       - id: build
-        needs: [plan, worktree, models, ready]
+        # plan, ready, worktree, models are from prior phases — all inherited, no needs required
         foreach: "${{ steps.plan.output.tasks }}"
         as: task
         key: "${{ task.name }}"
@@ -98,7 +98,7 @@ phases:
   - name: Review
     steps:
       - id: review
-        needs: [build, worktree, models]
+        # build, worktree, models are from prior phases — all inherited, no needs required
         loop:
           maxIterations: 3
           until: "steps.filter.output.actionable.length == 0"
@@ -147,7 +147,8 @@ phases:
               changed_files: "${{ steps.scout.output.changed_files }}"
 
           - id: repair
-            needs: [filter, worktree, models]
+            needs: [filter]
+            # worktree, models are from Setup phase (inherited — no needs required)
             if: "steps.filter.output.actionable.length > 0"
             foreach: "${{ steps.filter.output.actionable }}"
             as: finding
@@ -190,14 +191,15 @@ phases:
   - name: Docking
     steps:
       - id: push
-        needs: [worktree, plan]
+        # worktree is from Setup, plan is from Plan phase — both inherited
         uses: ./lib/git-push.ts
         with:
           worktree_path: "${{ steps.worktree.output.worktree_path }}"
           branch: "${{ steps.plan.output.branch }}"
 
       - id: pr
-        needs: [push, plan, worktree, models]
+        needs: [push]
+        # plan, worktree, models are from prior phases (inherited — no needs required)
         uses: ./lib/gh-pr.ts
         with:
           repo: "${{ inputs.repo }}"

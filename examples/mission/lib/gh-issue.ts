@@ -18,6 +18,16 @@ export default async function ghIssue(
   _ctx?: unknown,
   exec: Exec = defaultExec,
 ): Promise<GhIssueResult> {
+  // Dry-run: return canned issue data without calling gh.
+  if (process.env.MISSION_DRYRUN === '1') {
+    return {
+      number: Number(input.issue),
+      title: 'dry-run issue',
+      body: 'Dry-run placeholder issue body.',
+      repo: input.repo,
+    };
+  }
+
   const args = ['issue', 'view', String(input.issue), '--json', 'number,title,body'];
   if (input.repo) {
     args.push('--repo', input.repo);
