@@ -2,6 +2,8 @@ export interface ParsedArgs {
   workflow: string;
   inputs: Record<string, string>;
   resume?: string;
+  refresh: boolean;
+  yes: boolean;
 }
 
 export function parseArgs(argv: string[]): ParsedArgs {
@@ -10,6 +12,8 @@ export function parseArgs(argv: string[]): ParsedArgs {
   const inputs: Record<string, string> = {};
   let workflow: string | undefined;
   let resume: string | undefined;
+  let refresh = false;
+  let yes = false;
 
   for (let i = 0; i < rest.length; i++) {
     const arg = rest[i]!;
@@ -20,11 +24,15 @@ export function parseArgs(argv: string[]): ParsedArgs {
       inputs[pair.slice(0, eq)] = pair.slice(eq + 1);
     } else if (arg === '--resume') {
       resume = rest[++i];
-    } else if (!arg.startsWith('--')) {
+    } else if (arg === '--refresh') {
+      refresh = true;
+    } else if (arg === '--yes' || arg === '-y') {
+      yes = true;
+    } else if (!arg.startsWith('-')) {
       workflow = arg;
     }
   }
 
   if (!workflow) throw new Error('no workflow file given; usage: plyflow run <file.yaml>');
-  return { workflow, inputs, resume };
+  return { workflow, inputs, resume, refresh, yes };
 }

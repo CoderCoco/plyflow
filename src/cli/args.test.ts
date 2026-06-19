@@ -12,4 +12,18 @@ describe('parseArgs', () => {
   it('throws when no workflow file is given', () => {
     expect(() => parseArgs(['run'])).toThrow(/workflow/i);
   });
+
+  it('defaults refresh and yes to false', () => {
+    const a = parseArgs(['run', './wf.yaml']);
+    expect(a.refresh).toBe(false);
+    expect(a.yes).toBe(false);
+  });
+
+  it('parses --refresh, --yes and -y', () => {
+    const a = parseArgs(['run', 'github:o/r/wf.yaml@main', '--refresh', '--yes']);
+    expect(a.workflow).toBe('github:o/r/wf.yaml@main');
+    expect(a.refresh).toBe(true);
+    expect(a.yes).toBe(true);
+    expect(parseArgs(['run', './wf.yaml', '-y']).yes).toBe(true);
+  });
 });
