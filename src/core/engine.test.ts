@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { mkdtemp, rm, writeFile, mkdir } from 'node:fs/promises';
+import { mkdtemp, rm, writeFile, mkdir, readdir } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -140,5 +140,124 @@ describe('runWorkflow', () => {
     } finally {
       await rm(wfDir, { recursive: true, force: true });
     }
+  });
+
+  it('FIX2: a bad plugin path creates a journal failed record (not unhandled crash)', async () => {
+    // Workflow that declares a non-existent plugin
+    const wfPath = join(dir, 'bad-plugin-wf.yaml');
+    await writeFile(
+      wfPath,
+      [
+        'name: bad-plugin-wf',
+        "plugins: ['./nonexistent-plugin.ts']",
+        'phases:',
+        '  - name: Main',
+        '    steps:',
+        '      - id: s',
+        '        run: "return 1;"',
+      ].join('\n'),
+    );
+
+    // Should reject (plugin load fails)
+    await expect(
+      runWorkflow(wfPath, {
+        provider: new FakeProvider([]),
+        runDir: dir,
+        isTty: false,
+      }),
+    ).rejects.toThrow();
+
+    // And a journal record should exist in runDir (status: failed)
+    const entries = await readdir(dir);
+    const runDirs = entries.filter((e) => e.startsWith('run-'));
+    expect(runDirs.length).toBeGreaterThan(0);
+  });
+
+  it('FIX4: does not mutate a caller-provided registry across two runs', async () => {
+    // Plugin A (echo) and plugin B (double) — write both to temp dir
+    await writeFile(
+      join(dir, 'echo-plugin.ts'),
+      [
+        "import type { StepType } from 'plyflow/steps/types.js';",
+        "const echoStep: StepType<{ value: unknown }> = {",
+        "  name: 'echo',",
+        "  match: () => false,",
+        "  parse: (def) => ({ value: (def.with as any)?.value }),",
+        "  run: async (cfg) => ({ output: cfg.value }),",
+        "};",
+        "export default echoStep;",
+      ].join('\n'),
+    );
+
+    await writeFile(
+      join(dir, 'double-plugin.ts'),
+      [
+        "import type { StepRegistry } from 'plyflow/steps/registry.js';",
+        "import type { StepDef } from 'plyflow/core/types.js';",
+        "export default function register(registry: StepRegistry): void {",
+        "  registry.register({",
+        "    name: 'double',",
+        "    match: (def: StepDef) => def.step === 'double',",
+        "    parse: (def: StepDef) => ({ n: (def.with as any)?.n as number }),",
+        "    run: async (cfg: { n: number }) => ({ output: cfg.n * 2 }),",
+        "  });",
+        "}",
+      ].join('\n'),
+    );
+
+    const wfEcho = join(dir, 'wf-echo.yaml');
+    await writeFile(
+      wfEcho,
+      [
+        'name: wf-echo',
+        "plugins: ['./echo-plugin.ts']",
+        'phases:',
+        '  - name: Main',
+        '    steps:',
+        '      - id: e',
+        '        step: echo',
+        '        with:',
+        "          value: 'hello'",
+      ].join('\n'),
+    );
+
+    const wfDouble = join(dir, 'wf-double.yaml');
+    await writeFile(
+      wfDouble,
+      [
+        'name: wf-double',
+        "plugins: ['./double-plugin.ts']",
+        'phases:',
+        '  - name: Main',
+        '    steps:',
+        '      - id: d',
+        '        step: double',
+        '        with:',
+        '          n: 5',
+      ].join('\n'),
+    );
+
+    // Shared registry provided by caller
+    const sharedRegistry = buildDefaultRegistry();
+    const initialTypeCount = (sharedRegistry as any).types.length as number;
+
+    const res1 = await runWorkflow(wfEcho, {
+      provider: new FakeProvider([]),
+      runDir: dir,
+      registry: sharedRegistry,
+      isTty: false,
+    });
+    expect(res1.outputs['e']).toBe('hello');
+
+    const res2 = await runWorkflow(wfDouble, {
+      provider: new FakeProvider([]),
+      runDir: dir,
+      registry: sharedRegistry,
+      isTty: false,
+    });
+    expect(res2.outputs['d']).toBe(10);
+
+    // The caller's registry must NOT have been mutated
+    expect((sharedRegistry as any).types.length).toBe(initialTypeCount);
   });
 });

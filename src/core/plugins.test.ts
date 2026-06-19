@@ -90,6 +90,25 @@ describe('loadPlugins', () => {
     ).rejects.toThrow(/bad-plugin\.ts/);
   });
 
+  it('FIX1: throws a clear plugin/StepType error when default export lacks parse', async () => {
+    // An export with name+match+run but NO parse should NOT pass isStepType;
+    // instead it should fall through to the "unrecognized default export" error
+    // (which mentions the plugin path), NOT a TypeError about parse.bind.
+    const noParsePload = (_path: string): Promise<unknown> =>
+      Promise.resolve({
+        default: {
+          name: 'no-parse',
+          match: () => true,
+          run: async () => ({ output: null }),
+          // parse is intentionally absent
+        },
+      });
+
+    await expect(
+      loadPlugins(['./no-parse-plugin.ts'], registry, noParsePload),
+    ).rejects.toThrow(/plugin|StepType/i);
+  });
+
   it('handles plugins that export the default directly (not wrapped in {default})', async () => {
     // Some loaders return the module value directly rather than {default: ...}
     const directLoad = (_path: string): Promise<unknown> =>

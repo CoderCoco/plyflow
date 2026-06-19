@@ -69,17 +69,24 @@ export async function runWorkflow(
   });
 
   const wf = await loadWorkflow(workflowPath);
-  const registry = opts.registry ?? buildDefaultRegistry();
+  // Clone the caller-provided registry so plugin registrations are isolated
+  // per run and don't mutate the caller's shared registry.  If no registry
+  // was provided, buildDefaultRegistry() already returns a fresh instance.
+  const registry = opts.registry ? opts.registry.clone() : buildDefaultRegistry();
   // Build the loader from the env-resolved dir + provided set (merges
   // DEFAULT_PROVIDED with any plyflow.provided entries from package.json).
   const loader = createLoader({ baseDir: env.dir, provided: env.provided });
 
-  // Load plugins: union of env.plugins (from package.json plyflow.plugins) and
-  // wf.plugins (from the workflow YAML plugins: field), deduped.
-  const pluginPaths = Array.from(new Set([...env.plugins, ...(wf.plugins ?? [])]));
-  if (pluginPaths.length > 0) {
-    await loadPlugins(pluginPaths, registry, (p) => loader.import(p));
-  }
+  // Resolve plugin paths to absolute before deduplication so that
+  // './echo-plugin.ts' and 'echo-plugin.ts' (both relative to env.dir)
+  // collapse to the same entry and the file is only loaded once.
+  const { resolve: pathResolve } = await import('node:path');
+  const pluginPaths = Array.from(
+    new Set(
+      [...env.plugins, ...(wf.plugins ?? [])].map((p) => pathResolve(env.dir, p)),
+    ),
+  );
+
   const runDir = opts.runDir ?? '.plyflow/runs';
 
   const inputs: Record<string, unknown> = { ...(opts.inputs ?? {}) };
@@ -107,6 +114,13 @@ export async function runWorkflow(
   const isTty = opts.isTty !== undefined ? opts.isTty : !!process.stdout.isTTY;
 
   try {
+    // Load plugins inside the try/catch so a plugin-load failure marks the
+    // journal as failed (consistent with all other run failures) and the
+    // error/result carries the runId.
+    if (pluginPaths.length > 0) {
+      await loadPlugins(pluginPaths, registry, (p) => loader.import(p));
+    }
+
     for (const phase of wf.phases) {
       emit({ type: 'phase-start', phase: phase.name });
 

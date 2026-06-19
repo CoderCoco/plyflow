@@ -171,6 +171,57 @@ describe('B3: plugin loading via runWorkflow', () => {
     expect(res.outputs['e']).toBe('dedup');
   });
 
+  it('FIX3: deduplicates when env has bare name and wf has ./relative (same file, different raw string)', async () => {
+    // env.plugins = ['echo-plugin.ts'] (no ./)
+    // wf.plugins  = ['./echo-plugin.ts'] (with ./)
+    // Both resolve to the same absolute path → loaded ONCE → no ambiguous error.
+    await writeFile(
+      join(dir, 'echo-plugin.ts'),
+      [
+        "import type { StepType } from 'plyflow/steps/types.js';",
+        "const echoStep: StepType<{ value: unknown }> = {",
+        "  name: 'echo',",
+        "  match: () => false,",
+        "  parse: (def) => ({ value: (def.with as any)?.value }),",
+        "  run: async (cfg) => ({ output: cfg.value }),",
+        "};",
+        "export default echoStep;",
+      ].join('\n'),
+    );
+
+    // package.json declares plugin WITHOUT leading './'
+    await writeFile(
+      join(dir, 'package.json'),
+      JSON.stringify({
+        plyflow: { plugins: ['echo-plugin.ts'] },
+      }),
+    );
+
+    const wfPath = join(dir, 'fix3-dedup.yaml');
+    await writeFile(
+      wfPath,
+      [
+        'name: fix3-dedup',
+        "plugins: ['./echo-plugin.ts']",   // WITH leading './'
+        'phases:',
+        '  - name: Main',
+        '    steps:',
+        '      - id: e',
+        '        step: echo',
+        '        with:',
+        "          value: 'fix3'",
+      ].join('\n'),
+    );
+
+    // Should run without "ambiguous step" error
+    const res = await runWorkflow(wfPath, {
+      provider: new FakeProvider([]),
+      runDir: dir,
+      isTty: false,
+    });
+    expect(res.outputs['e']).toBe('fix3');
+  });
+
   it('rejects with a clear error mentioning the unknown step name when step: ghost has no matching plugin', async () => {
     const wfPath = join(dir, 'ghost-e2e.yaml');
     await writeFile(

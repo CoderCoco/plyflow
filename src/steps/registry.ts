@@ -9,12 +9,31 @@ export class StepRegistry {
   }
 
   /**
-   * Returns the names of all registered custom step types (those whose name
-   * does not match any built-in type key). Useful for error messages.
+   * Return a new StepRegistry seeded with the same types as this one.
+   * Used by runWorkflow to isolate per-run registries from a caller-provided
+   * shared registry.
+   */
+  clone(): StepRegistry {
+    const copy = new StepRegistry();
+    for (const t of this.types) {
+      copy.types.push(t);
+    }
+    return copy;
+  }
+
+  /**
+   * Returns the names of all registered custom step types — those that are
+   * invoked via the `step:` key, i.e. types whose `match` returns true when
+   * called with `{ id: '', step: type.name }`. Built-in step types (run,
+   * agent, etc.) match on their own key (e.g. `def.run`, `def.agent`) and
+   * therefore return false for the `step:` probe, so they are naturally
+   * excluded. This is computed dynamically from the registry's actual types,
+   * with no hardcoded list of built-in names. Useful for error messages.
    */
   customStepNames(): string[] {
-    const builtins = new Set(['run', 'agent', 'input', 'widget', 'parallel', 'loop', 'foreach']);
-    return this.types.filter((t) => !builtins.has(t.name)).map((t) => t.name);
+    return this.types
+      .filter((t) => t.match({ id: '', step: t.name }))
+      .map((t) => t.name);
   }
 
   select(def: StepDef): StepType {

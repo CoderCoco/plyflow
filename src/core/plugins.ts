@@ -12,6 +12,7 @@ function isStepType(value: unknown): value is StepType {
   return (
     typeof v['name'] === 'string' &&
     typeof v['match'] === 'function' &&
+    typeof v['parse'] === 'function' &&
     typeof v['run'] === 'function'
   );
 }
