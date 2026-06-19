@@ -7,15 +7,18 @@ import { hashDir, recordTrust, trustKey } from '../core/remote/trust.js';
 import { RemoteFetchError } from '../core/remote/index.js';
 import type { ResolvedSource } from '../core/remote/index.js';
 
-let dir: string; // serves as repoDir AND holds the trust store
+let dir: string;
+let storeDir: string;
 let store: string;
 beforeEach(async () => {
   dir = await mkdtemp(join(tmpdir(), 'plyflow-tp-'));
-  store = join(dir, 'trust.json');
+  storeDir = await mkdtemp(join(tmpdir(), 'plyflow-tp-store-'));
+  store = join(storeDir, 'trust.json');
   await writeFile(join(dir, 'wf.yaml'), 'name: demo\n');
 });
 afterEach(async () => {
   await rm(dir, { recursive: true, force: true });
+  await rm(storeDir, { recursive: true, force: true });
 });
 
 const resolved = (): ResolvedSource => ({
