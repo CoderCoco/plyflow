@@ -1,4 +1,5 @@
 // src/core/remote/cache.ts
+import { createHash } from 'node:crypto';
 import { readFile, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
@@ -17,7 +18,8 @@ export function defaultCacheRoot(): string {
 }
 
 export function cacheKey(ref: WorkflowRef): string {
-  return `${ref.owner}-${ref.repo}@${ref.ref ?? 'HEAD'}`;
+  const stable = JSON.stringify([ref.host, ref.owner, ref.repo, ref.ref ?? 'HEAD']);
+  return createHash('sha256').update(stable).digest('hex');
 }
 
 export function cacheDir(cacheRoot: string, ref: WorkflowRef): string {

@@ -25,6 +25,25 @@ export function parseWorkflowRef(arg: string): WorkflowRef | null {
   return null; // plain local path — preserve current behaviour
 }
 
+/**
+ * Percent-decodes each segment of a subPath and rejects any segment that is
+ * `..` or that looks like an absolute path (starts with `/`), to prevent
+ * path-traversal attacks.
+ */
+function normalizeSubPath(subPath: string): string {
+  const segments = subPath.split('/');
+  const decoded = segments.map((seg) => {
+    const d = decodeURIComponent(seg);
+    if (d === '..' || d.startsWith('/')) {
+      throw new RemoteFetchError(
+        `unsafe path segment "${seg}" in remote workflow sub-path "${subPath}"`,
+      );
+    }
+    return d;
+  });
+  return decoded.join('/');
+}
+
 function parseShorthand(body: string): WorkflowRef {
   // Split the optional "@ref" off the end (last '@' wins).
   let ref: string | null = null;
@@ -38,7 +57,7 @@ function parseShorthand(body: string): WorkflowRef {
     throw new RemoteFetchError(`could not parse remote workflow "${SHORTHAND}${body}"; ${FORMS}`);
   }
   const [owner, repo, ...sub] = parts;
-  return { host: 'github', owner: owner!, repo: repo!, ref, subPath: sub.join('/') };
+  return { host: 'github', owner: owner!, repo: repo!, ref, subPath: normalizeSubPath(sub.join('/')) };
 }
 
 function parseUrl(arg: string): WorkflowRef {
@@ -59,6 +78,6 @@ function parseUrl(arg: string): WorkflowRef {
     owner: seg[0]!,
     repo: seg[1]!,
     ref: seg[3]!,
-    subPath: seg.slice(4).join('/'),
+    subPath: normalizeSubPath(seg.slice(4).join('/')),
   };
 }

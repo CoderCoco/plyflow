@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { c as tarCreate } from 'tar';
 import { resolveWorkflowSource } from './resolve.js';
+import { cacheKey } from './cache.js';
 import { RemoteFetchError } from './errors.js';
 
 async function fixtureTarball(work: string): Promise<Buffer> {
@@ -46,7 +47,9 @@ describe('resolveWorkflowSource', () => {
     });
     expect(capturedUrl).toBe('https://api.github.com/repos/o/r/tarball/main');
     expect(r.remote?.owner).toBe('o');
-    expect(r.repoDir).toBe(join(root, 'o-r@main'));
+    expect(r.repoDir).toBe(
+      join(root, cacheKey({ host: 'github', owner: 'o', repo: 'r', ref: 'main', subPath: '' })),
+    );
     expect(await readFile(r.localPath, 'utf8')).toBe('name: demo\n');
   });
 

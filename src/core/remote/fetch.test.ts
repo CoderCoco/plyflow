@@ -132,4 +132,30 @@ describe('ensureRepo', () => {
     const entries = await readdir(root).catch(() => []);
     expect(entries.filter((e) => !e.includes('.tmp'))).toEqual([]);
   });
+
+  it('aborts the request after the timeout and reports it', async () => {
+    // A fetch that never resolves on its own, but honors the abort signal.
+    const fetchImpl = ((_url: string | URL, init?: RequestInit) =>
+      new Promise((_resolve, reject) => {
+        init?.signal?.addEventListener('abort', () => {
+          const err = new Error('The operation was aborted');
+          err.name = 'AbortError';
+          reject(err);
+        });
+      })) as unknown as typeof fetch;
+    await expect(
+      ensureRepo(ref(), { cacheRoot: root, fetchImpl, timeoutMs: 10 }),
+    ).rejects.toThrow(/timed out/i);
+  });
+
+  it('passes an AbortSignal to fetch even with no explicit timeout (default bound)', async () => {
+    const body = await fixtureTarball(work);
+    let sawSignal = false;
+    const fetchImpl = (async (_url: string | URL, init?: RequestInit) => {
+      sawSignal = init?.signal instanceof AbortSignal;
+      return okResponse(body);
+    }) as unknown as typeof fetch;
+    await ensureRepo(ref(), { cacheRoot: root, fetchImpl });
+    expect(sawSignal).toBe(true);
+  });
 });

@@ -1,6 +1,6 @@
 // src/core/remote/resolve.ts
 import { access } from 'node:fs/promises';
-import { join } from 'node:path';
+import { join, resolve, relative, sep, isAbsolute } from 'node:path';
 import { parseWorkflowRef, type WorkflowRef } from './ref.js';
 import { ensureRepo } from './fetch.js';
 import { RemoteFetchError } from './errors.js';
@@ -43,6 +43,15 @@ export async function resolveWorkflowSource(
   });
 
   const localPath = join(dir, ref.subPath);
+  // Defense-in-depth: even though parsing rejects `..` segments, confirm the
+  // resolved file stays inside the cache dir. Segment-aware so a legitimate name
+  // like "..foo" is not mistaken for an escape.
+  const rel = relative(dir, resolve(localPath));
+  if (rel === '..' || rel.startsWith(`..${sep}`) || isAbsolute(rel)) {
+    throw new RemoteFetchError(
+      `subPath "${ref.subPath}" escapes the repository cache directory`,
+    );
+  }
   try {
     await access(localPath);
   } catch {

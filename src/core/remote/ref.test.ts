@@ -54,4 +54,24 @@ describe('parseWorkflowRef', () => {
   it('throws RemoteFetchError on a github.com URL with no file path', () => {
     expect(() => parseWorkflowRef('https://github.com/org/repo')).toThrow(RemoteFetchError);
   });
+
+  it('rejects literal and percent-encoded traversal segments in a shorthand subPath', () => {
+    expect(() => parseWorkflowRef('github:o/r/../../etc/passwd@main')).toThrow(/unsafe path segment/);
+    // %2e%2e decodes to ".." — caught after decoding in normalizeSubPath.
+    expect(() => parseWorkflowRef('github:o/r/%2e%2e/%2e%2e/etc/passwd@main')).toThrow(
+      /unsafe path segment/,
+    );
+  });
+
+  it('cannot express traversal via a github.com URL (WHATWG URL normalizes dot-segments)', () => {
+    // Both `..` and `%2e%2e` are collapsed by the URL parser before we parse it,
+    // so a traversal degenerates into a (rejected) too-short path, never an escape.
+    expect(() =>
+      parseWorkflowRef('https://github.com/o/r/blob/main/%2e%2e/secret.yaml'),
+    ).toThrow(RemoteFetchError);
+  });
+
+  it('still parses a normal nested subPath', () => {
+    expect(parseWorkflowRef('github:o/r/a/b/c/wf.yaml@main')?.subPath).toBe('a/b/c/wf.yaml');
+  });
 });

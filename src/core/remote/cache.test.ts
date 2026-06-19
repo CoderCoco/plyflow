@@ -31,13 +31,24 @@ afterEach(async () => {
 });
 
 describe('cache key + paths', () => {
-  it('builds a key from owner, repo and ref', () => {
-    expect(cacheKey(ref())).toBe('o-r@main');
-    expect(cacheKey(ref({ ref: null }))).toBe('o-r@HEAD');
+  it('builds a deterministic hex key that varies by owner, repo and ref', () => {
+    const k = cacheKey(ref());
+    expect(k).toMatch(/^[0-9a-f]{64}$/);
+    expect(cacheKey(ref())).toBe(k); // deterministic
+    expect(cacheKey(ref({ ref: null }))).not.toBe(k); // ref participates
+    expect(cacheKey(ref({ repo: 'other' }))).not.toBe(k); // repo participates
   });
 
-  it('places the dir under the cache root', () => {
-    expect(cacheDir(root, ref())).toBe(join(root, 'o-r@main'));
+  it('does not alias different repos into one key', () => {
+    // A `${owner}-${repo}` join made these collide into "a-b-c@main", which would
+    // run the wrong repository's workflow from a shared cache dir.
+    expect(cacheKey(ref({ owner: 'a-b', repo: 'c' }))).not.toBe(
+      cacheKey(ref({ owner: 'a', repo: 'b-c' })),
+    );
+  });
+
+  it('places the dir under the cache root using the key', () => {
+    expect(cacheDir(root, ref())).toBe(join(root, cacheKey(ref())));
   });
 
   it('defaultCacheRoot ends with .plyflow/cache', () => {

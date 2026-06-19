@@ -7,11 +7,15 @@ import { RemoteFetchError } from './errors.js';
 import type { WorkflowRef } from './ref.js';
 import { cacheDir, cacheKey, defaultCacheRoot, isFresh, writeMeta } from './cache.js';
 
+/** Default per-request timeout so a stalled socket can never hang the CLI forever. */
+const DEFAULT_TIMEOUT_MS = 60_000;
+
 export interface EnsureRepoOptions {
   cacheRoot?: string;
   token?: string;
   refresh?: boolean;
   ttlMs?: number;
+  timeoutMs?: number;
   now?: () => number;
   fetchImpl?: typeof fetch;
 }
@@ -41,7 +45,7 @@ export async function ensureRepo(
     return { dir, cacheKey: key, fetched: false };
   }
 
-  const buf = await download(ref, fetchImpl, opts.token);
+  const buf = await download(ref, fetchImpl, opts.token, opts.timeoutMs);
   await extractToCache(buf, dir, ref, now);
   return { dir, cacheKey: key, fetched: true };
 }
@@ -50,6 +54,7 @@ async function download(
   ref: WorkflowRef,
   fetchImpl: typeof fetch,
   token: string | undefined,
+  timeoutMs?: number,
 ): Promise<Buffer> {
   const headers: Record<string, string> = {
     'User-Agent': 'plyflow',
@@ -57,14 +62,27 @@ async function download(
   };
   if (token) headers.Authorization = `Bearer ${token}`;
 
+  const ms = timeoutMs ?? DEFAULT_TIMEOUT_MS;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), ms);
+  timer.unref?.(); // don't keep the event loop alive on the timer's account
+
   let res: Response;
   try {
-    res = await fetchImpl(tarballUrl(ref), { headers });
+    res = await fetchImpl(tarballUrl(ref), { headers, signal: controller.signal });
   } catch (cause) {
+    if (controller.signal.aborted) {
+      throw new RemoteFetchError(
+        `timed out fetching ${ref.owner}/${ref.repo} after ${ms}ms`,
+        { cause },
+      );
+    }
     throw new RemoteFetchError(
       `network error fetching ${ref.owner}/${ref.repo}: ${(cause as Error).message}`,
       { cause },
     );
+  } finally {
+    clearTimeout(timer);
   }
   if (!res.ok) throw httpError(ref, res);
   return Buffer.from(await res.arrayBuffer());
