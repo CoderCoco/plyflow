@@ -34,6 +34,11 @@ type WidgetComponent = React.ComponentType<{ data: unknown; resolve: (value: unk
 /** Cache of already-loaded widget modules, keyed by absolute module path. */
 const widgetCache = new Map<string, WidgetComponent>();
 
+/** Reset the widget module cache. Exported for test isolation only. */
+export function __clearWidgetCache(): void {
+  widgetCache.clear();
+}
+
 interface WidgetHostProps {
   request: Extract<UiRequest, { kind: 'widget' }>;
   onResolve: (value: unknown) => void;
@@ -59,6 +64,7 @@ function WidgetHost({ request, onResolve }: WidgetHostProps): React.ReactElement
     // when the module was already loaded in this process session.
     return widgetCache.get(request.module) ?? null;
   });
+  const [error, setError] = useState<Error | null>(null);
 
   // Stable ref so the effect closure doesn't capture a stale onResolve.
   const onResolveRef = useRef(onResolve);
@@ -75,12 +81,23 @@ function WidgetHost({ request, onResolve }: WidgetHostProps): React.ReactElement
       if (cancelled) return;
       // Support both ESM default export and CommonJS module.exports patterns.
       const ns = mod as Record<string, unknown>;
-      const Comp = (ns['default'] ?? mod) as WidgetComponent;
-      widgetCache.set(request.module, Comp);
-      setComponent(() => Comp);
+      const Comp = ns['default'] ?? mod;
+      if (typeof Comp !== 'function') {
+        setError(new Error(`widget module "${request.module}" has no usable default export`));
+        return;
+      }
+      widgetCache.set(request.module, Comp as WidgetComponent);
+      setComponent(() => Comp as WidgetComponent);
+    }).catch((err: unknown) => {
+      if (cancelled) return;
+      setError(err instanceof Error ? err : new Error(String(err)));
     });
     return () => { cancelled = true; };
   }, [request.module, request.baseDir]);
+
+  if (error) {
+    return <Text color="red">widget failed: {error.message}</Text>;
+  }
 
   if (!component) {
     return <Text dimColor>loading…</Text>;

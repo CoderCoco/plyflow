@@ -10,12 +10,12 @@
  * component is mounted and resolve is called.  We wait a further tick for React to
  * process the state update.
  */
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { render } from 'ink-testing-library';
 import React from 'react';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { App } from './App.js';
+import { App, __clearWidgetCache } from './App.js';
 import type { EngineEvent } from '../core/engine.js';
 import type { WorkflowFile } from '../core/types.js';
 import type { UiRequest } from '../steps/types.js';
@@ -24,6 +24,12 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const ECHO_WIDGET_PATH = path.resolve(__dirname, '__fixtures__/EchoWidget.tsx');
 const ECHO_WIDGET_DIR = path.dirname(ECHO_WIDGET_PATH);
+
+const BAD_WIDGET_PATH = path.resolve(__dirname, '__fixtures__/BadWidget.tsx');
+const BAD_WIDGET_DIR = path.dirname(BAD_WIDGET_PATH);
+
+const MISSING_WIDGET_PATH = path.resolve(__dirname, '__fixtures__/DoesNotExist.tsx');
+const MISSING_WIDGET_DIR = path.dirname(MISSING_WIDGET_PATH);
 
 /** Minimal workflow file with one step so App initialises cleanly. */
 function makeWorkflow(): WorkflowFile {
@@ -49,27 +55,37 @@ function neverEnds(): AsyncIterable<EngineEvent> {
   };
 }
 
+/** Helper: render App, wait for registerPrompt, return handler + frames + unmount */
+async function setupApp() {
+  const wf = makeWorkflow();
+  let promptHandler: ((stepId: string, req: UiRequest) => Promise<unknown>) | undefined;
+
+  const { frames, unmount } = render(
+    <App
+      workflow={wf}
+      events={neverEnds()}
+      registerPrompt={(handler) => {
+        promptHandler = handler;
+      }}
+      onDone={() => {}}
+    />,
+  );
+
+  await new Promise((r) => setTimeout(r, 20));
+  expect(promptHandler).toBeDefined();
+
+  return { frames, unmount, promptHandler: promptHandler! };
+}
+
 describe('App widget mounting', () => {
+  beforeEach(() => {
+    __clearWidgetCache();
+  });
+
   it('loads and renders a widget component, resolves with widget data', async () => {
-    const wf = makeWorkflow();
-    let promptHandler: ((stepId: string, req: UiRequest) => Promise<unknown>) | undefined;
+    const { frames, unmount, promptHandler } = await setupApp();
 
     const resolvedValues: unknown[] = [];
-
-    const { frames, unmount } = render(
-      <App
-        workflow={wf}
-        events={neverEnds()}
-        registerPrompt={(handler) => {
-          promptHandler = handler;
-        }}
-        onDone={() => {}}
-      />,
-    );
-
-    // Wait for App to register the prompt handler via useEffect.
-    await new Promise((r) => setTimeout(r, 20));
-    expect(promptHandler).toBeDefined();
 
     // Drive a widget UiRequest into the App.
     const widgetRequest: UiRequest = {
@@ -79,7 +95,7 @@ describe('App widget mounting', () => {
       props: 'hello-42',
     };
 
-    const pendingPromise = promptHandler!('s', widgetRequest).then((v) => {
+    const pendingPromise = promptHandler('s', widgetRequest).then((v) => {
       resolvedValues.push(v);
       return v;
     });
@@ -100,23 +116,8 @@ describe('App widget mounting', () => {
     await pendingPromise.catch(() => {}); // swallow if unmount caused rejection
   });
 
-  it('renders a loading indicator while the widget module is being loaded', async () => {
-    const wf = makeWorkflow();
-    let promptHandler: ((stepId: string, req: UiRequest) => Promise<unknown>) | undefined;
-
-    const { frames, unmount } = render(
-      <App
-        workflow={wf}
-        events={neverEnds()}
-        registerPrompt={(handler) => {
-          promptHandler = handler;
-        }}
-        onDone={() => {}}
-      />,
-    );
-
-    await new Promise((r) => setTimeout(r, 20));
-    expect(promptHandler).toBeDefined();
+  it('shows loading placeholder before widget module resolves (cache cleared)', async () => {
+    const { frames, unmount, promptHandler } = await setupApp();
 
     const widgetRequest: UiRequest = {
       kind: 'widget',
@@ -125,19 +126,66 @@ describe('App widget mounting', () => {
       props: 'loading-test',
     };
 
-    // Don't await; check early frames for loading indicator.
-    const pending = promptHandler!('s', widgetRequest);
+    // Don't await; check early frames for loading indicator before module settles.
+    const pending = promptHandler('s', widgetRequest);
 
-    // After a tiny tick the loading placeholder should appear before the module loads.
+    // After a tiny tick (before jiti finishes) the loading placeholder should appear.
     await new Promise((r) => setTimeout(r, 10));
-    const earlyFrame = frames[frames.length - 1] ?? '';
-    // Either the loading indicator or the widget itself — both are valid since
-    // jiti may be very fast (cached).  The key invariant is no crash/throw.
-    expect(typeof earlyFrame).toBe('string');
+    const earlyFrames = frames.join('\n');
+    // With a cold cache, "loading…" must appear in at least one early frame.
+    expect(earlyFrames).toContain('loading');
 
     // Wait for full settlement.
     await new Promise((r) => setTimeout(r, 600));
     unmount();
     await pending.catch(() => {});
+  });
+
+  it('surfaces an error line when the widget module has no default export', async () => {
+    const { frames, unmount, promptHandler } = await setupApp();
+
+    const widgetRequest: UiRequest = {
+      kind: 'widget',
+      module: BAD_WIDGET_PATH,
+      baseDir: BAD_WIDGET_DIR,
+      props: 'ignored',
+    };
+
+    // Don't await — the promise never resolves when the widget errors (no resolve() call).
+    void promptHandler('s', widgetRequest);
+
+    // Allow time for module load + React state update.
+    await new Promise((r) => setTimeout(r, 500));
+
+    // App should render the "widget failed" error line instead of hanging.
+    const errorFrame = frames.find((f) => f.includes('widget failed'));
+    expect(errorFrame).toBeDefined();
+    // Ensure it mentions the module path or the reason.
+    expect(errorFrame).toMatch(/widget failed/);
+
+    unmount();
+  });
+
+  it('surfaces an error line when the widget module path does not exist', async () => {
+    const { frames, unmount, promptHandler } = await setupApp();
+
+    const widgetRequest: UiRequest = {
+      kind: 'widget',
+      module: MISSING_WIDGET_PATH,
+      baseDir: MISSING_WIDGET_DIR,
+      props: 'ignored',
+    };
+
+    // Don't await — the promise never resolves when the widget errors (no resolve() call).
+    void promptHandler('s', widgetRequest);
+
+    // Allow time for attempted load + error propagation.
+    await new Promise((r) => setTimeout(r, 500));
+
+    // App should render the "widget failed" error line instead of hanging.
+    const errorFrame = frames.find((f) => f.includes('widget failed'));
+    expect(errorFrame).toBeDefined();
+
+    unmount();
   });
 });
