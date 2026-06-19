@@ -1,0 +1,8 @@
+{
+  "name": "plyflow-example-plugins",
+  "private": true,
+  "plyflow": {
+    "provided": ["zod"],
+    "plugins": ["./steps/uppercase.ts"]
+  }
+}
