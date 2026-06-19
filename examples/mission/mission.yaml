@@ -1,0 +1,209 @@
+name: mission
+inputs:
+  issue: { type: number, required: true }
+  repo: { type: string, required: false }
+  models: { type: string, required: false }   # "role=value,..." parsed by resolve-models
+
+phases:
+  - name: Setup
+    steps:
+      - id: models
+        uses: ./lib/resolve-models.ts
+        with:
+          overrides: "${{ inputs.models }}"
+          fableAvailable: true
+
+      - id: issue
+        uses: ./lib/gh-issue.ts
+        with:
+          issue: "${{ inputs.issue }}"
+          repo: "${{ inputs.repo }}"
+
+      - id: worktree
+        needs: [issue]
+        uses: ./lib/git-worktree.ts
+        with:
+          issue: "${{ inputs.issue }}"
+          slug: "${{ steps.issue.output.title }}"
+
+  - name: Plan
+    steps:
+      - id: plan
+        # issue, worktree, models are from the Setup phase (inherited — no needs required)
+        agent: ./agents/flight-director.md
+        model: "${{ steps.models.output.director }}"
+        params:
+          cwd: "${{ steps.worktree.output.worktree_path }}"
+          allowedTools: ["Read", "Grep", "Glob", "Bash"]
+        prompt: "Issue #${{ inputs.issue }}: ${{ steps.issue.output.title }}\n\n${{ steps.issue.output.body }}\n\nProduce the flight plan."
+        output: ./schemas/Plan.ts
+
+      # NOTE: The open_questions re-plan loop (loop around the director step +
+      # foreach over open_questions to gather answers) is a future refinement.
+      # This task implements a single director pass followed by a confirm gate.
+      - id: ready
+        needs: [plan]
+        input:
+          type: confirm
+          message: "Flight plan ready: ${{ steps.plan.output.tasks.length }} tasks. Proceed to liftoff?"
+
+  - name: Build
+    steps:
+      - id: build
+        # plan, ready, worktree, models are from prior phases — all inherited, no needs required
+        foreach: "${{ steps.plan.output.tasks }}"
+        as: task
+        key: "${{ task.name }}"
+        dependsOn: "${{ task.depends_on }}"
+        concurrency: 5
+        steps:
+          - id: attempt
+            loop:
+              maxIterations: 3
+              until: "${{ steps.verify.output.verdict == 'PASS' }}"
+            steps:
+              - id: implement
+                agent: ./agents/astronaut.md
+                model: "${{ steps.models.output.astronaut }}"
+                params:
+                  cwd: "${{ steps.worktree.output.worktree_path }}"
+                prompt: |
+                  Task: ${{ task.name }} — ${{ task.title }}
+                  Files: ${{ task.files }}
+                  Acceptance: ${{ task.acceptance }}
+                  Iteration: ${{ iteration }}
+                  Prior verification feedback (address these): ${{ steps.verify && steps.verify.output ? steps.verify.output.fixes_needed : '' }}
+                output: ./schemas/AstronautReport.ts
+
+              - id: verify
+                needs: [implement]
+                agent: ./agents/flight-controller.md
+                model: "${{ steps.models.output.controller }}"
+                params:
+                  cwd: "${{ steps.worktree.output.worktree_path }}"
+                  allowedTools: ["Read", "Grep", "Glob", "Bash"]
+                prompt: |
+                  Task: ${{ task.name }} — ${{ task.title }}
+                  Acceptance: ${{ task.acceptance }}
+                  Astronaut summary: ${{ steps.implement.output.summary }}
+                output: ./schemas/ControllerVerdict.ts
+
+          - id: commit
+            needs: [attempt]
+            if: "${{ steps.attempt.output.verify.verdict == 'PASS' }}"
+            uses: ./lib/git-commit.ts
+            with:
+              worktree_path: "${{ steps.worktree.output.worktree_path }}"
+              message: "feat(${{ task.name }}): ${{ task.title }}\n\nRefs #${{ inputs.issue }}"
+
+  - name: Review
+    steps:
+      - id: review
+        # build, worktree, models are from prior phases — all inherited, no needs required
+        loop:
+          maxIterations: 3
+          until: "${{ steps.filter.output.actionable.length == 0 }}"
+        steps:
+          - id: scout
+            agent: ./agents/scout.md
+            model: "${{ steps.models.output.utility }}"
+            params:
+              cwd: "${{ steps.worktree.output.worktree_path }}"
+              allowedTools: ["Read", "Grep", "Glob", "Bash"]
+            prompt: |
+              Scan the branch diff, identify which language buckets have changed files,
+              list those files, and list which specialist reviewers are needed.
+              Issue #${{ inputs.issue }}
+            output: ./schemas/ScoutResult.ts
+
+          - id: inspect
+            needs: [scout]
+            foreach: "${{ steps.scout.output.buckets }}"
+            as: bucket
+            key: "${{ bucket }}"
+            steps:
+              - id: review-bucket
+                agent: ./agents/systems-inspector.md
+                model: "${{ steps.models.output.inspector }}"
+                params:
+                  cwd: "${{ steps.worktree.output.worktree_path }}"
+                  allowedTools: ["Read", "Grep", "Glob", "Bash"]
+                prompt: |
+                  Bucket: ${{ bucket }}
+                  Changed files for this bucket: ${{ steps.scout.output.changed_files }}
+                  Review all files in the ${{ bucket }} bucket against the rubric and report findings.
+                output: ./schemas/InspectorFindings.ts
+
+          - id: flatten
+            needs: [inspect]
+            uses: ./lib/flatten-findings.ts
+            with:
+              inspect: "${{ steps.inspect.output }}"
+
+          - id: filter
+            needs: [flatten, scout]
+            uses: ./lib/findings-filter.ts
+            with:
+              findings: "${{ steps.flatten.output.findings }}"
+              changed_files: "${{ steps.scout.output.changed_files }}"
+
+          - id: repair
+            needs: [filter]
+            # worktree, models are from Setup phase (inherited — no needs required)
+            if: "${{ steps.filter.output.actionable.length > 0 }}"
+            foreach: "${{ steps.filter.output.actionable }}"
+            as: finding
+            key: "${{ finding.file + '::' + finding.summary }}"
+            concurrency: 5
+            steps:
+              - id: fix
+                agent: ./agents/astronaut.md
+                model: "${{ steps.models.output.astronaut }}"
+                params:
+                  cwd: "${{ steps.worktree.output.worktree_path }}"
+                prompt: |
+                  Fix the following finding:
+                  File: ${{ finding.file }}
+                  Summary: ${{ finding.summary }}
+                  Suggestion: ${{ finding.suggestion }}
+                output: ./schemas/AstronautReport.ts
+
+              - id: verify-fix
+                needs: [fix]
+                agent: ./agents/flight-controller.md
+                model: "${{ steps.models.output.controller }}"
+                params:
+                  cwd: "${{ steps.worktree.output.worktree_path }}"
+                  allowedTools: ["Read", "Grep", "Glob", "Bash"]
+                prompt: |
+                  Verify the fix for: ${{ finding.summary }}
+                  File: ${{ finding.file }}
+                  Astronaut summary: ${{ steps.fix.output.summary }}
+                output: ./schemas/ControllerVerdict.ts
+
+              - id: commit-fix
+                needs: [verify-fix]
+                if: "${{ steps['verify-fix'].output.verdict == 'PASS' }}"
+                uses: ./lib/git-commit.ts
+                with:
+                  worktree_path: "${{ steps.worktree.output.worktree_path }}"
+                  message: "fix: ${{ finding.summary }}\n\nRefs #${{ inputs.issue }}"
+
+  - name: Docking
+    steps:
+      - id: push
+        # worktree is from Setup — use the real branch it created, not the director's guess
+        uses: ./lib/git-push.ts
+        with:
+          worktree_path: "${{ steps.worktree.output.worktree_path }}"
+          branch: "${{ steps.worktree.output.branch }}"
+
+      - id: pr
+        needs: [push]
+        # plan, worktree, models are from prior phases (inherited — no needs required)
+        uses: ./lib/gh-pr.ts
+        with:
+          repo: "${{ inputs.repo }}"
+          branch: "${{ steps.worktree.output.branch }}"
+          title: "${{ steps.plan.output.issue_title }}"
+          body: "## Summary\n\nImplements #${{ inputs.issue }}: ${{ steps.plan.output.issue_title }}\n\nCloses #${{ inputs.issue }}"

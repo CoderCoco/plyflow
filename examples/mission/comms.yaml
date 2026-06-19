@@ -1,0 +1,105 @@
+name: mission-comms
+inputs:
+  pr: { type: number, required: true }
+  repo: { type: string, required: false }
+  worktree_path: { type: string, required: false }
+  models: { type: string, required: false }
+
+phases:
+  - name: Fetch
+    steps:
+      - id: models
+        uses: ./lib/resolve-models.ts
+        with:
+          overrides: "${{ inputs.models }}"
+          fableAvailable: true
+
+      - id: fetch
+        uses: ./lib/gh-comments.ts
+        with:
+          repo: "${{ inputs.repo }}"
+          pr: "${{ inputs.pr }}"
+
+  - name: Triage
+    steps:
+      - id: triage
+        needs: [fetch, models]
+        agent: ./agents/capcom.md
+        model: "${{ steps.models.output.capcom }}"
+        params:
+          allowedTools: ["Read", "Grep", "Glob", "Bash"]
+        prompt: |
+          New PR comments to triage for PR #${{ inputs.pr }}.
+
+          Comments:
+          ${{ steps.fetch.output.comments }}
+
+          Categorise each comment as actionable, question, acknowledge, ignore, or ambiguous.
+        output: ./schemas/CapcomTriage.ts
+
+  - name: Fix
+    steps:
+      - id: pick
+        needs: [triage]
+        uses: ./lib/actionable-comments.ts
+        with:
+          triage: "${{ steps.triage.output }}"
+
+      - id: fix-comments
+        needs: [pick, models]
+        if: "${{ steps.pick.output.actionable.length > 0 }}"
+        foreach: "${{ steps.pick.output.actionable }}"
+        as: comment
+        key: "${{ comment.id }}"
+        concurrency: 5
+        steps:
+          - id: fix
+            agent: ./agents/astronaut.md
+            model: "${{ steps.models.output.astronaut }}"
+            params:
+              cwd: "${{ inputs.worktree_path }}"
+            prompt: |
+              Address this PR review comment:
+              Comment ID: ${{ comment.id }}
+              Fix hint: ${{ comment.fix_hint }}
+
+              Apply the requested change to the codebase.
+            output: ./schemas/AstronautReport.ts
+
+          - id: verify
+            needs: [fix]
+            agent: ./agents/flight-controller.md
+            model: "${{ steps.models.output.controller }}"
+            params:
+              cwd: "${{ inputs.worktree_path }}"
+              allowedTools: ["Read", "Grep", "Glob", "Bash"]
+            prompt: |
+              Verify the fix for PR comment ${{ comment.id }}.
+              Fix hint was: ${{ comment.fix_hint }}
+              Astronaut summary: ${{ steps.fix.output.summary }}
+            output: ./schemas/ControllerVerdict.ts
+
+          - id: commit
+            needs: [verify]
+            if: "${{ steps.verify.output.verdict == 'PASS' }}"
+            uses: ./lib/git-commit.ts
+            with:
+              worktree_path: "${{ inputs.worktree_path }}"
+              message: "fix: address review comment ${{ comment.id }}\n\nRefs PR #${{ inputs.pr }}"
+
+  - name: Downlink
+    steps:
+      - id: push
+        needs: [fetch]
+        uses: ./lib/git-push.ts
+        with:
+          worktree_path: "${{ inputs.worktree_path }}"
+          branch: "${{ steps.fetch.output.headRefName }}"
+
+      - id: notify
+        needs: [push]
+        uses: ./lib/post-comment.ts
+        with:
+          repo: "${{ inputs.repo }}"
+          pr: "${{ inputs.pr }}"
+          body: "Mission Control: comms round complete. Actionable comments addressed and pushed."

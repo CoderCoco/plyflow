@@ -23,6 +23,7 @@ export interface StepDef {
   output?: string;
   retry?: { max: number; backoff?: number };
   continueOnError?: boolean;
+  if?: string;
   // Exactly one of the following selects the step type:
   run?: string; // inline JS source, or a path ending .ts/.js
   uses?: string; // path to a code module
@@ -30,6 +31,25 @@ export interface StepDef {
   prompt?: string; // prompt passed to an agent step
   input?: InputStepDef;
   parallel?: StepDef[];
+  loop?: { maxIterations: number; until?: string };
+  /** Dynamic fan-out over a runtime array. */
+  foreach?: string;
+  /** Binding name for the current element (default: 'item'). */
+  as?: string;
+  /** Expression that produces the element's identity key (default: array index as string). */
+  key?: string;
+  /** Expression that produces an array of keys this element depends on (default: []). */
+  dependsOn?: string;
+  /** Maximum number of elements to run concurrently within a wave (default: unlimited). */
+  concurrency?: number;
+  /** Child sub-pipeline; used by composite step types such as loop and foreach. */
+  steps?: StepDef[];
+  /** Per-step model override (expression-resolved). */
+  model?: string;
+  /** Per-step mode override (expression-resolved). */
+  mode?: string;
+  /** Per-step params override merged into the provider request (expression-resolved). */
+  params?: Record<string, unknown>;
 }
 
 export interface InputStepDef {

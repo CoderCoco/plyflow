@@ -23,3 +23,125 @@ describe('parseAgentConfig', () => {
     expect(cfg.mode).toBe('api');
   });
 });
+
+// ── Fix E: loop step with no steps array fails validation ─────────────────────
+
+describe('Fix E — loop step requires non-empty steps', () => {
+  it('rejects a loop step with no steps array', () => {
+    expect(() =>
+      parseWorkflow({
+        name: 'test',
+        phases: [{ name: 'P', steps: [{ id: 'l', loop: { maxIterations: 3 } }] }],
+      }),
+    ).toThrow();
+  });
+
+  it('rejects a loop step with an empty steps array', () => {
+    expect(() =>
+      parseWorkflow({
+        name: 'test',
+        phases: [{ name: 'P', steps: [{ id: 'l', loop: { maxIterations: 3 }, steps: [] }] }],
+      }),
+    ).toThrow();
+  });
+
+  it('accepts a loop step with a non-empty steps array', () => {
+    expect(() =>
+      parseWorkflow({
+        name: 'test',
+        phases: [
+          {
+            name: 'P',
+            steps: [
+              { id: 'l', loop: { maxIterations: 3 }, steps: [{ id: 'inner', run: 'return 1;' }] },
+            ],
+          },
+        ],
+      }),
+    ).not.toThrow();
+  });
+});
+
+// ── Fix F: step id must not contain '/' ──────────────────────────────────────
+
+describe('Fix F — step id must not contain "/"', () => {
+  it('rejects a step id containing "/"', () => {
+    expect(() =>
+      parseWorkflow({
+        name: 'test',
+        phases: [{ name: 'P', steps: [{ id: 'bad/id', run: 'return 1;' }] }],
+      }),
+    ).toThrow();
+  });
+
+  it('accepts a step id without "/"', () => {
+    expect(() =>
+      parseWorkflow({
+        name: 'test',
+        phases: [{ name: 'P', steps: [{ id: 'good-id', run: 'return 1;' }] }],
+      }),
+    ).not.toThrow();
+  });
+});
+
+// ── Fix 2: bare if/until rejected at schema load time ──────────────────────
+
+describe('Fix 2 — bare if/until rejected at load', () => {
+  it('rejects a step with bare if: "true" (no ${{ }})', () => {
+    expect(() =>
+      parseWorkflow({
+        name: 'test',
+        phases: [{ name: 'P', steps: [{ id: 's', run: 'x', if: 'true' }] }],
+      }),
+    ).toThrow(/if\/until must be a \$\{\{/);
+  });
+
+  it('accepts a step with if: "${{ true }}"', () => {
+    expect(() =>
+      parseWorkflow({
+        name: 'test',
+        phases: [{ name: 'P', steps: [{ id: 's', run: 'x', if: '${{ true }}' }] }],
+      }),
+    ).not.toThrow();
+  });
+
+  it('rejects a loop step with bare until (no ${{ }})', () => {
+    expect(() =>
+      parseWorkflow({
+        name: 'test',
+        phases: [
+          {
+            name: 'P',
+            steps: [
+              {
+                id: 'l',
+                loop: { maxIterations: 3, until: "steps.x.output.done == true" },
+                steps: [{ id: 'inner', run: 'return 1;' }],
+              },
+            ],
+          },
+        ],
+      }),
+    ).toThrow(/if\/until must be a \$\{\{/);
+  });
+
+  it('accepts a loop step with until: "${{ steps.x.output.done == true }}"', () => {
+    expect(() =>
+      parseWorkflow({
+        name: 'test',
+        phases: [
+          {
+            name: 'P',
+            steps: [
+              {
+                id: 'l',
+                loop: { maxIterations: 3, until: '${{ steps.x.output.done == true }}' },
+                steps: [{ id: 'inner', run: 'return 1;' }],
+              },
+            ],
+          },
+        ],
+      }),
+    ).not.toThrow();
+  });
+});

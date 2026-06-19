@@ -1,0 +1,22 @@
+name: primitives-e2e
+phases:
+  - name: Main
+    steps:
+      - id: fanout
+        foreach: "${{ [{name:'A',deps:[]},{name:'B',deps:['A']}] }}"
+        key: "${{ item.name }}"
+        dependsOn: "${{ item.deps }}"
+        steps:
+          - id: counter
+            loop:
+              maxIterations: 3
+              until: "${{ steps.count.output >= 2 }}"
+            steps:
+              - id: count
+                run: "return ctx.with.i + 1;"
+                with:
+                  i: "${{ iteration }}"
+              - id: gate
+                needs: [count]
+                if: "${{ steps.count.output >= 2 }}"
+                run: "return 'gated-ran';"

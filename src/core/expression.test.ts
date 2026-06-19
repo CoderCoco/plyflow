@@ -28,3 +28,34 @@ describe('resolve', () => {
     expect(resolve('plain', ctx)).toBe('plain');
   });
 });
+
+describe('resolve with bindings', () => {
+  it('resolves a binding named "item"', () => {
+    const c: ExprContext = {
+      inputs: {},
+      steps: {},
+      env: {},
+      bindings: { item: { n: 5 } },
+    };
+    expect(resolve('${{ item.n }}', c)).toBe(5);
+  });
+
+  it('does not throw when a binding key collides with a named param ("env")', () => {
+    // A binding named "env" previously caused SyntaxError: Duplicate parameter name
+    // under strict mode (when binding keys were spread as individual function params).
+    // With the __b object approach, colliding keys are simply skipped from const-decls
+    // so no SyntaxError is thrown and other bindings still resolve correctly.
+    const c: ExprContext = {
+      inputs: {},
+      steps: {},
+      env: { X: 'outer' },
+      bindings: { env: { X: 'inner' }, item: 42 },
+    };
+    // Must not throw even though a binding key is named "env"
+    expect(() => resolve('${{ item }}', c)).not.toThrow();
+    // Non-colliding binding resolves correctly
+    expect(resolve('${{ item }}', c)).toBe(42);
+    // "env" binding key is skipped; the expression sees the real env param value
+    expect(resolve('${{ env.X }}', c)).toBe('outer');
+  });
+});
