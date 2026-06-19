@@ -7,7 +7,10 @@ import type { StepContext } from './types.js';
 
 const ctx = (): StepContext => ({
   inputs: {}, env: {}, steps: {}, with: {}, provider: {} as any, baseDir: '.',
+  isTty: true,
+  provided: ['zod', 'react', 'ink'],
   emit: () => {}, prompt: async () => undefined,
+  loadModule: async (_path: string) => ({}),
 });
 
 describe('parallel step', () => {

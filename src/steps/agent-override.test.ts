@@ -10,6 +10,7 @@ import { ClaudeProvider } from '../providers/claude.js';
 import { createRootScope, runSteps } from '../core/exec.js';
 import { buildDefaultRegistry } from '../core/engine.js';
 import { Journal } from '../core/journal.js';
+import { createLoader } from '../core/module-loader.js';
 import type { StepContext } from './types.js';
 import type { AICompleteRequest } from '../providers/types.js';
 
@@ -19,6 +20,7 @@ function expr(e: string): string {
 }
 
 const fixturesDir = dirname(fileURLToPath(new URL('./__fixtures__/x', import.meta.url)));
+const fixturesLoader = createLoader({ baseDir: fixturesDir });
 
 function makeCtx(provider: any, over: Partial<StepContext> = {}): StepContext {
   return {
@@ -28,8 +30,11 @@ function makeCtx(provider: any, over: Partial<StepContext> = {}): StepContext {
     with: {},
     provider,
     baseDir: fixturesDir,
+    isTty: true,
+    provided: ['zod', 'react', 'ink'],
     emit: () => {},
     prompt: async () => undefined,
+    loadModule: fixturesLoader.import.bind(fixturesLoader),
     bindings: {},
     resolve: (v: unknown) => v,
     runChildren: async () => ({}),
@@ -86,6 +91,8 @@ describe('agent step — expression-resolved model override via exec', () => {
         journal,
         journalPath: 'phase:Test',
         dirty: new Set(),
+        isTty: true,
+        loadModule: fixturesLoader.import.bind(fixturesLoader),
         emit: () => {},
         prompt: () => Promise.reject(new Error('no prompt')),
       });

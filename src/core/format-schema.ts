@@ -41,22 +41,28 @@ const stepDef: z.ZodType<any> = z.lazy(() =>
       model: z.string().optional(),
       mode: z.string().optional(),
       params: z.record(z.string(), z.unknown()).optional(),
+      widget: z.string().optional(),
+      step: z.string().optional(),
+      default: z.unknown().optional(),
     })
     .refine(
-      (s) =>
-        ['run', 'uses', 'agent', 'input', 'parallel', 'loop', 'foreach'].filter(
-          (k) => s[k] !== undefined,
-        ).length === 1,
+      (s) => {
+        const r = s as Record<string, unknown>;
+        return ['run', 'uses', 'agent', 'input', 'parallel', 'loop', 'foreach', 'widget', 'step'].filter(
+          (k) => r[k] !== undefined,
+        ).length === 1;
+      },
       {
         message:
-          'a step must have exactly one type key: run | uses | agent | input | parallel | loop | foreach',
+          'a step must have exactly one type key: run | uses | agent | input | parallel | loop | foreach | widget | step',
       },
     )
     .superRefine((s, ctx) => {
+      const r = s as Record<string, unknown>;
       // Composite step types that orchestrate child steps must provide a non-empty steps array.
       const compositesRequiringSteps: string[] = ['loop', 'foreach'];
       for (const key of compositesRequiringSteps) {
-        if (s[key] !== undefined && (!Array.isArray(s['steps']) || s['steps'].length === 0)) {
+        if (r[key] !== undefined && (!Array.isArray(s['steps']) || s['steps'].length === 0)) {
           ctx.addIssue({
             code: 'custom',
             path: ['steps'],
@@ -88,6 +94,7 @@ const workflowSchema = z.object({
   phases: z
     .array(z.object({ name: z.string().min(1), steps: z.array(stepDef).min(1) }))
     .min(1),
+  plugins: z.array(z.string()).optional(),
 });
 
 export function parseWorkflow(raw: unknown): WorkflowFile {

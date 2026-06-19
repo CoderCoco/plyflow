@@ -84,6 +84,110 @@ describe('Fix F — step id must not contain "/"', () => {
   });
 });
 
+// ── A1: widget + default fields ──────────────────────────────────────────────
+
+describe('A1 — widget and default fields', () => {
+  it('accepts a step with widget type key', () => {
+    expect(() =>
+      parseWorkflow({
+        name: 'test',
+        phases: [{ name: 'P', steps: [{ id: 's', widget: './MyWidget.tsx' }] }],
+      }),
+    ).not.toThrow();
+  });
+
+  it('accepts a step with widget and default', () => {
+    expect(() =>
+      parseWorkflow({
+        name: 'test',
+        phases: [{ name: 'P', steps: [{ id: 's', widget: './MyWidget.tsx', default: 'fallback' }] }],
+      }),
+    ).not.toThrow();
+  });
+
+  it('accepts an input step with a default value', () => {
+    expect(() =>
+      parseWorkflow({
+        name: 'test',
+        phases: [
+          {
+            name: 'P',
+            steps: [{ id: 's', input: { type: 'text', message: 'name?' }, default: 'alice' }],
+          },
+        ],
+      }),
+    ).not.toThrow();
+  });
+
+  it('rejects a step with both widget and run (two type keys)', () => {
+    expect(() =>
+      parseWorkflow({
+        name: 'test',
+        phases: [{ name: 'P', steps: [{ id: 's', widget: './W.tsx', run: 'return 1;' }] }],
+      }),
+    ).toThrow();
+  });
+
+  it('rejects a step with no type key (widget is now in the set)', () => {
+    expect(() =>
+      parseWorkflow({
+        name: 'test',
+        phases: [{ name: 'P', steps: [{ id: 's', default: 'x' }] }],
+      }),
+    ).toThrow();
+  });
+});
+
+// ── B1: step: type key + plugins: field ─────────────────────────────────────
+
+describe('B1 — step: type key and plugins: field', () => {
+  it('accepts a workflow with plugins field', () => {
+    expect(() =>
+      parseWorkflow({
+        name: 'test',
+        plugins: ['./p.ts'],
+        phases: [{ name: 'P', steps: [{ id: 's', run: 'x' }] }],
+      }),
+    ).not.toThrow();
+  });
+
+  it('accepts a workflow without plugins field', () => {
+    expect(() =>
+      parseWorkflow({
+        name: 'test',
+        phases: [{ name: 'P', steps: [{ id: 's', run: 'x' }] }],
+      }),
+    ).not.toThrow();
+  });
+
+  it('accepts a step with step: type key', () => {
+    expect(() =>
+      parseWorkflow({
+        name: 'test',
+        phases: [{ name: 'P', steps: [{ id: 's', step: 'my', with: {} }] }],
+      }),
+    ).not.toThrow();
+  });
+
+  it('rejects a step with both step and run (two type keys)', () => {
+    expect(() =>
+      parseWorkflow({
+        name: 'test',
+        phases: [{ name: 'P', steps: [{ id: 's', step: 'my', run: 'return 1;' }] }],
+      }),
+    ).toThrow();
+  });
+
+  it('regression: widget is still a valid type key', () => {
+    expect(() =>
+      parseWorkflow({
+        name: 'test',
+        phases: [{ name: 'P', steps: [{ id: 's', widget: './W.tsx' }] }],
+      }),
+    ).not.toThrow();
+  });
+});
+
 // ── Fix 2: bare if/until rejected at schema load time ──────────────────────
 
 describe('Fix 2 — bare if/until rejected at load', () => {

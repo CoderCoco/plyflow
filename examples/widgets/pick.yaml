@@ -1,0 +1,22 @@
+name: pick-demo
+phases:
+  - name: Pick
+    steps:
+      # widget: step — mounts Picker.tsx in the TUI when running interactively.
+      # In non-TTY mode (CI, tests, piped output) the `default:` value is used
+      # instead of trying to render the widget.
+      - id: picked
+        widget: ./Picker.tsx
+        default: typescript
+        with:
+          message: "Which language do you prefer?"
+          choices:
+            - typescript
+            - python
+            - rust
+
+      # Consume the widget's output in a subsequent run step.
+      - id: echo
+        needs: [picked]
+        run: |
+          return `You picked: ${ctx.steps.picked.output}`;

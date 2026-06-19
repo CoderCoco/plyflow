@@ -14,13 +14,16 @@ describe('App', () => {
 
     async function* events(): AsyncGenerator<EngineEvent> {
       yield { type: 'phase-start', phase: 'P' };
+      await new Promise((r) => setTimeout(r, 5));
       yield { type: 'step-start', stepId: 's' };
+      await new Promise((r) => setTimeout(r, 5));
       yield { type: 'step-done', stepId: 's', output: 1, cached: false };
+      await new Promise((r) => setTimeout(r, 5));
     }
 
     const onDone = vi.fn();
 
-    const { lastFrame } = render(
+    const { frames } = render(
       <App
         workflow={wf}
         events={events()}
@@ -29,10 +32,11 @@ describe('App', () => {
       />,
     );
 
-    await new Promise((r) => setTimeout(r, 50));
+    await new Promise((r) => setTimeout(r, 100));
 
     expect(onDone).toHaveBeenCalled();
-    const frame = lastFrame() ?? '';
+    // Ink 7 appends a final "\n" frame on exit(); find the last meaningful frame.
+    const frame = [...frames].reverse().find((f) => f.trim().length > 0) ?? '';
     expect(frame).toContain('s');
     expect(frame).toMatch(/✓/);
   });

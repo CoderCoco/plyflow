@@ -5,11 +5,15 @@ export type StepEvent =
   | { type: 'log'; message: string }
   | { type: 'output'; chunk: string };
 
-export interface PromptRequest {
-  type: 'confirm' | 'text' | 'select';
-  message: string;
-  choices?: string[];
-}
+export type UiRequest =
+  | { kind: 'prompt'; type: 'confirm' | 'text' | 'select'; message: string; choices?: string[] }
+  | { kind: 'widget'; module: string; baseDir: string; props: unknown; provided?: string[] };
+
+/**
+ * Type alias for the prompt-kind shape of UiRequest.
+ * Kept for backward compatibility with callers that reference PromptRequest.
+ */
+export type PromptRequest = Extract<UiRequest, { kind: 'prompt' }>;
 
 export interface StepContext {
   inputs: Record<string, unknown>;
@@ -21,9 +25,19 @@ export interface StepContext {
   provider: AIProvider;
   /** Directory of the workflow file; used to resolve relative paths. */
   baseDir: string;
+  /** Whether the process is running in an interactive TTY. */
+  isTty: boolean;
+  /** Bare specifiers whose modules are shared with plyflow's own copies (from workflow's package.json plyflow.provided). */
+  provided: string[];
   resolve?(value: unknown): unknown;
   emit(event: StepEvent): void;
-  prompt(req: PromptRequest): Promise<unknown>;
+  prompt(req: UiRequest): Promise<unknown>;
+  /**
+   * Load a user module via the run's shared module loader.
+   * Relative paths are resolved from the workflow's baseDir.
+   * Returns the full module namespace object.
+   */
+  loadModule(path: string): Promise<unknown>;
   /**
    * Run a child sub-pipeline and return its outputs map.
    * Composite step types (loop, foreach, etc.) use this to recurse into

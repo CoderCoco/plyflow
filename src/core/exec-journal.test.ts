@@ -43,6 +43,8 @@ function makeScope(
     journal,
     journalPath,
     dirty,
+    isTty: true,
+    loadModule: async (_path: string) => ({}),
     emit: (e) => events.push(e),
     prompt: () => Promise.reject(new Error('no prompt')),
   });

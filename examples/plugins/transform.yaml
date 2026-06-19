@@ -1,0 +1,12 @@
+name: transform
+# Declare the plugin in the YAML itself. Alternatively, you can declare it in
+# package.json under plyflow.plugins — see the package.json in this directory.
+plugins:
+  - ./steps/uppercase.ts
+phases:
+  - name: Transform
+    steps:
+      - id: shout
+        step: uppercase
+        with:
+          text: hello

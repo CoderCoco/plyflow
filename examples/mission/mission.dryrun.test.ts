@@ -160,6 +160,7 @@ describe('mission.yaml dry-run end-to-end', () => {
       provider,
       runDir,
       prompt: autoPrompt,
+      isTty: true,
     });
 
     expect(result).toBeDefined();
@@ -174,6 +175,7 @@ describe('mission.yaml dry-run end-to-end', () => {
       provider,
       runDir,
       prompt: autoPrompt,
+      isTty: true,
     });
 
     // Use startsWith to avoid matching cross-mentions (e.g. "Flight Director's plan" in Astronaut prompt)
@@ -191,6 +193,7 @@ describe('mission.yaml dry-run end-to-end', () => {
       provider,
       runDir,
       prompt: autoPrompt,
+      isTty: true,
     });
 
     // 1 task → 1 astronaut call, 1 controller call (PASS on first try)
@@ -213,6 +216,7 @@ describe('mission.yaml dry-run end-to-end', () => {
       provider,
       runDir,
       prompt: autoPrompt,
+      isTty: true,
     });
 
     const scoutCalls = provider.calls.filter((c) => c.system.startsWith('You are the Scout'));
@@ -227,6 +231,7 @@ describe('mission.yaml dry-run end-to-end', () => {
       provider,
       runDir,
       prompt: autoPrompt,
+      isTty: true,
     });
 
     // The pr step output should be the GhPrResult from the dry-run gate.
@@ -244,6 +249,7 @@ describe('mission.yaml dry-run end-to-end', () => {
       provider,
       runDir,
       prompt: autoPrompt,
+      isTty: true,
     });
 
     // build output is a foreach result: { [taskName]: { attempt: {...}, commit: {...} } }
@@ -377,6 +383,7 @@ describe('mission.yaml FAIL-first dry-run (FIX 7)', () => {
       provider,
       runDir,
       prompt: autoPrompt,
+      isTty: true,
     });
 
     // CRITICAL: retry loop fired → astronaut was called at least twice
