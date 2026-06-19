@@ -7,6 +7,7 @@ import type { WorkflowRef } from './ref.js';
 import { META_FILE } from './cache.js';
 
 const SKIP_DIRS = new Set(['node_modules', '.git']);
+const TRUST_FILE = 'trust.json';
 
 export interface TrustOptions {
   storePath?: string;
@@ -23,7 +24,7 @@ async function walk(dir: string, out: string[]): Promise<void> {
       if (SKIP_DIRS.has(e.name)) continue;
       await walk(join(dir, e.name), out);
     } else if (e.isFile()) {
-      if (e.name === META_FILE) continue;
+      if (e.name === META_FILE || e.name === TRUST_FILE) continue;
       out.push(join(dir, e.name));
     }
   }
