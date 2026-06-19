@@ -112,10 +112,9 @@ Without `default:`, a widget step in non-TTY mode throws an error.
 
 The following are always host-provided:
 
-- `react` — React core
-- `react/jsx-runtime` — JSX runtime
-- `ink` — Ink terminal UI library
 - `zod` — Zod schema validation
+- `react` — React core
+- `ink` — Ink terminal UI library
 
 ## Using other libraries in widgets
 

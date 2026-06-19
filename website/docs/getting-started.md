@@ -6,7 +6,7 @@ sidebar_position: 2
 
 ## Prerequisites
 
-- **Node.js 20+** (ESM project — Node 20 LTS or later)
+- **Node.js 24+** (ESM project — Node 24 or later)
 - **npm** (comes with Node)
 - **ANTHROPIC_API_KEY** — required for the default Claude provider in `api` mode
 
@@ -21,7 +21,7 @@ npm install
 npm run build
 ```
 
-This compiles the TypeScript source (`src/`) to JavaScript and makes the `plyflow` CLI available via `npx` or `node dist/cli.js`.
+This compiles the TypeScript source (`src/`) to JavaScript and makes the `plyflow` CLI available via `npx` or `node dist/cli/index.js`.
 
 :::tip Running globally
 After building, you can link the CLI so `plyflow` works from anywhere:

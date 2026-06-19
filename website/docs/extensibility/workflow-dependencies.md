@@ -34,7 +34,6 @@ The following modules are **bundled with plyflow** and are always available — 
 |--------|---------|
 | `zod` | latest (plyflow's copy) |
 | `react` | latest (plyflow's copy) |
-| `react/jsx-runtime` | latest (plyflow's copy) |
 | `ink` | latest (plyflow's copy) |
 
 These resolve to plyflow's own copies via the module loader. This is especially important for React and Ink: if widgets installed their own copy, React would have two instances, breaking hooks.

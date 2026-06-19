@@ -37,7 +37,7 @@ The `parallel:` step's output is an object keyed by child step ID:
 - id: show
   needs: [gather]
   run: |
-    const issues = ctx.steps.gather.output.fetch-issues;
+    const issues = ctx.steps.gather.output['fetch-issues'];
     const prs = ctx.steps.gather.output['fetch-prs'];
     return { issueCount: issues.length, prCount: prs.length };
 ```

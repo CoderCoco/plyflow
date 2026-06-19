@@ -1,6 +1,6 @@
 {
   "name": "plyflow",
-  "version": "0.0.0",
+  "version": "0.3.0",
   "description": "Run AI agent workflows defined in YAML, with an interactive terminal UI.",
   "type": "module",
   "bin": {

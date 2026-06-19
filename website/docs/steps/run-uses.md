@@ -70,7 +70,7 @@ export default async function myModule(cfg: any, ctx: any) {
   // ctx.inputs — workflow inputs
   // ctx.steps  — prior step outputs
   // ctx.env    — process.env
-  // ctx.loadModule(path, baseDir) — load another module
+  // ctx.loadModule(path) — load another module
   return { done: true };
 }
 ```
@@ -91,7 +91,7 @@ export default async function transform(cfg: any) {
 
 ## `with:` parameters
 
-Both `run:` and `uses:` accept `with:` to pass named parameters. In `run:`, these are available via `ctx.inputs` combined with the step's `with` data (accessible in the expression context). In `uses:`, they are the first argument `cfg`.
+Both `run:` and `uses:` accept `with:` to pass named parameters. In `run:`, the `with:` data is passed as the first argument (named `input` in the function body) and is also available on `ctx.with`. It is separate from `ctx.inputs`, which holds workflow-level inputs. In `uses:`, the `with:` data is the first argument `cfg`.
 
 ```yaml
 - id: calc

@@ -136,15 +136,15 @@ In non-`run` fields (like `message`, `prompt`, `if`, `key`, `dependsOn`, `model`
 
 ### Expression scope
 
-The following identifiers are available in all `${{ }}` expressions:
+The following identifiers are available in `${{ }}` expressions:
 
-| Identifier | Description |
-|-----------|-------------|
-| `inputs` | Map of all workflow inputs |
-| `steps` | Map of step id → `{ output }` for all completed steps visible in this scope |
-| `env` | `process.env` |
-| `item` | Current element binding in a `foreach:` step (or whatever `as:` names it) |
-| `iteration` | Current iteration index (0-based) inside a `loop:` step |
+| Identifier | Scope | Description |
+|-----------|-------|-------------|
+| `inputs` | Always | Map of all workflow inputs |
+| `steps` | Always | Map of step id → `{ output }` for all completed steps visible in this scope |
+| `env` | Always | `process.env` |
+| `item` | `foreach:` only | Current element binding (or whatever `as:` names it) — only inside a `foreach:` step |
+| `iteration` | `loop:` only | Current iteration index (0-based) — only inside a `loop:` step |
 
 ### Accessing step outputs
 

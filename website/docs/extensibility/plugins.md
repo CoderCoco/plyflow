@@ -101,7 +101,7 @@ interface StepType<Cfg> {
 }
 
 interface StepResult {
-  output?: unknown;
+  output: unknown;
 }
 ```
 
@@ -151,7 +151,7 @@ Plugins have access to the full `StepContext`, which means they can:
 - Access prior step outputs: `ctx.steps`
 - Call the AI provider: `ctx.provider.complete(...)`
 - Prompt the user: `ctx.prompt(...)`
-- Load modules: `ctx.loadModule(path, baseDir)`
+- Load modules: `ctx.loadModule(path)`
 - Run child pipelines: `ctx.runChildren(steps, bindings, journalPath)`
 
 This makes plugins as powerful as built-in step types.
