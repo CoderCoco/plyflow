@@ -46,3 +46,51 @@ phases:
         input:
           type: confirm
           message: "Flight plan ready: ${{ steps.plan.output.tasks.length }} tasks. Proceed to liftoff?"
+
+  - name: Build
+    steps:
+      - id: build
+        needs: [plan, worktree, models, ready]
+        foreach: "${{ steps.plan.output.tasks }}"
+        as: task
+        key: "${{ task.name }}"
+        dependsOn: "${{ task.depends_on }}"
+        concurrency: 5
+        steps:
+          - id: attempt
+            loop:
+              maxIterations: 3
+              until: "steps.verify.output.verdict == 'PASS'"
+            steps:
+              - id: implement
+                agent: ./agents/astronaut.md
+                model: "${{ steps.models.output.astronaut }}"
+                params:
+                  cwd: "${{ steps.worktree.output.worktree_path }}"
+                prompt: |
+                  Task: ${{ task.name }} — ${{ task.title }}
+                  Files: ${{ task.files }}
+                  Acceptance: ${{ task.acceptance }}
+                  Iteration: ${{ iteration }}
+                output: ./schemas/AstronautReport.ts
+
+              - id: verify
+                needs: [implement]
+                agent: ./agents/flight-controller.md
+                model: "${{ steps.models.output.controller }}"
+                params:
+                  cwd: "${{ steps.worktree.output.worktree_path }}"
+                  allowedTools: ["Read", "Grep", "Glob", "Bash"]
+                prompt: |
+                  Task: ${{ task.name }} — ${{ task.title }}
+                  Acceptance: ${{ task.acceptance }}
+                  Astronaut summary: ${{ steps.implement.output.summary }}
+                output: ./schemas/ControllerVerdict.ts
+
+          - id: commit
+            needs: [attempt]
+            if: "steps.attempt.output.verify.verdict == 'PASS'"
+            uses: ./lib/git-commit.ts
+            with:
+              worktree_path: "${{ steps.worktree.output.worktree_path }}"
+              message: "feat(${{ task.name }}): ${{ task.title }}\n\nRefs #${{ inputs.issue }}"

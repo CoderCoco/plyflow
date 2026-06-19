@@ -55,4 +55,48 @@ describe('mission.yaml', () => {
     expect(ready.input?.type).toBe('confirm');
     expect(ready.needs).toContain('plan');
   });
+
+  it('has a Build phase', async () => {
+    const wf = await loadWorkflow(missionYaml);
+    const phaseNames = wf.phases.map((p) => p.name);
+    expect(phaseNames).toContain('Build');
+  });
+
+  it('build step is a foreach over steps.plan.output.tasks', async () => {
+    const wf = await loadWorkflow(missionYaml);
+    const build = wf.phases.find((p) => p.name === 'Build')!;
+    const buildStep = build.steps.find((s) => s.id === 'build')!;
+    expect(buildStep).toBeDefined();
+    expect(buildStep.foreach).toContain('steps.plan.output.tasks');
+    expect(buildStep.needs).toContain('plan');
+  });
+
+  it('build step declares needs including plan, worktree, models', async () => {
+    const wf = await loadWorkflow(missionYaml);
+    const build = wf.phases.find((p) => p.name === 'Build')!;
+    const buildStep = build.steps.find((s) => s.id === 'build')!;
+    expect(buildStep.needs).toContain('plan');
+    expect(buildStep.needs).toContain('worktree');
+    expect(buildStep.needs).toContain('models');
+  });
+
+  it('build foreach has attempt loop child with until referencing verify verdict', async () => {
+    const wf = await loadWorkflow(missionYaml);
+    const build = wf.phases.find((p) => p.name === 'Build')!;
+    const buildStep = build.steps.find((s) => s.id === 'build')!;
+    const attempt = buildStep.steps?.find((s: any) => s.id === 'attempt');
+    expect(attempt).toBeDefined();
+    expect(attempt.loop).toBeDefined();
+    expect(attempt.loop.until).toContain('steps.verify.output.verdict');
+  });
+
+  it('build foreach has commit child with if referencing attempt loop verdict', async () => {
+    const wf = await loadWorkflow(missionYaml);
+    const build = wf.phases.find((p) => p.name === 'Build')!;
+    const buildStep = build.steps.find((s) => s.id === 'build')!;
+    const commit = buildStep.steps?.find((s: any) => s.id === 'commit');
+    expect(commit).toBeDefined();
+    expect(commit['if']).toBeDefined();
+    expect(commit['if']).toContain('steps.attempt.output.verify.verdict');
+  });
 });
