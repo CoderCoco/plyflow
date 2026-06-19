@@ -34,12 +34,17 @@ describe('resolveWorkflowSource', () => {
 
   it('fetches a remote ref and returns the local path to the workflow', async () => {
     const body = await fixtureTarball(work);
-    const fetchImpl = (async () => new Response(body, { status: 200 })) as unknown as typeof fetch;
+    let capturedUrl: string | undefined;
+    const fetchImpl = (async (url: string | URL) => {
+      capturedUrl = String(url);
+      return new Response(body, { status: 200 });
+    }) as unknown as typeof fetch;
     const r = await resolveWorkflowSource('github:o/r/examples/wf.yaml@main', {
       cacheRoot: root,
       fetchImpl,
       env: {},
     });
+    expect(capturedUrl).toBe('https://api.github.com/repos/o/r/tarball/main');
     expect(r.remote?.owner).toBe('o');
     expect(r.repoDir).toBe(join(root, 'o-r@main'));
     expect(await readFile(r.localPath, 'utf8')).toBe('name: demo\n');

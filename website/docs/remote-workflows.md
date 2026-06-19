@@ -94,6 +94,9 @@ To skip the prompt:
 - Run in a non-interactive environment (CI, piped stdout) — plyflow detects the
   absence of a TTY and skips the prompt automatically.
 
+In both cases plyflow still **records the workflow as trusted**, so subsequent
+runs of the same unchanged workflow won't prompt (or auto-skip) again either.
+
 ## Private repositories
 
 Set `GITHUB_TOKEN` or `GH_TOKEN` in your environment and plyflow will

@@ -19,6 +19,12 @@ export async function ensureTrusted(resolved: ResolvedSource, deps: ConfirmTrust
   const ref = resolved.remote;
   const at = `${ref.owner}/${ref.repo}@${ref.ref ?? 'HEAD'}`;
   // Hash only the directory containing the workflow file — the bundle that runs.
+  // Scope assumption: any files the workflow references (agents, schemas, plugins)
+  // are expected to live within that same directory subtree, which matches how the
+  // bundled examples are authored.  A workflow that references files OUTSIDE this
+  // subtree (e.g. `uses: ../shared/foo.ts` or an absolute path) would execute code
+  // not covered by the hash, so a silent change to such a sibling file would not
+  // re-trigger the trust prompt.
   const hash = await hashDir(dirname(resolved.localPath));
   const key = trustKey(ref);
   const opts = { storePath: deps.storePath };
