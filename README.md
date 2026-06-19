@@ -54,6 +54,28 @@ Each run writes a journal under `.plyflow/runs/<runId>.json`. Re-running with
 `--resume <runId>` replays unchanged completed steps and re-runs from the first
 changed or incomplete step.
 
+## Running a workflow from GitHub
+
+Run a workflow straight from a GitHub repository — plyflow fetches the repo,
+caches it under `~/.plyflow/cache/`, and runs it locally:
+
+```bash
+# Shorthand (ref optional — defaults to the repo's default branch)
+plyflow run github:org/repo/examples/mission/mission.yaml@v1.0.0
+
+# …or paste a GitHub URL
+plyflow run https://github.com/org/repo/blob/main/examples/mission/mission.yaml
+```
+
+Sibling files the workflow references (agents, schemas, plugins) are fetched
+with it. The first run of a given remote workflow asks for confirmation, since
+remote workflows can execute code; pass `--yes` to skip the prompt (also skipped
+in non-interactive/CI environments). Use `--refresh` to bypass the cache and
+re-fetch.
+
+**Private repos:** set `GITHUB_TOKEN` (or `GH_TOKEN`) and plyflow authenticates
+the download.
+
 ## Extensibility (v0.3)
 
 ### Workflow `package.json` and host-provided modules

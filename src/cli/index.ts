@@ -3,6 +3,8 @@ import { render } from 'ink';
 import React from 'react';
 import { parseArgs } from './args.js';
 import { loadWorkflow } from '../core/loader.js';
+import { resolveWorkflowSource } from '../core/remote/index.js';
+import { ensureTrusted, readlineConfirm } from './trust-prompt.js';
 import { runWorkflow, type EngineEvent } from '../core/engine.js';
 import { makeProvider } from '../providers/factory.js';
 import { LineLogger } from '../tui/logger.js';
@@ -23,13 +25,21 @@ function coerceInputs(
 
 export async function main(argv: string[]): Promise<void> {
   const args = parseArgs(argv);
-  const wf = await loadWorkflow(args.workflow);
+  const resolved = await resolveWorkflowSource(args.workflow, { refresh: args.refresh });
+  await ensureTrusted(resolved, {
+    isTty: Boolean(process.stdout.isTTY),
+    yes: args.yes,
+    confirm: readlineConfirm,
+    log: (line) => process.stderr.write(line + '\n'),
+  });
+  const wfPath = resolved.localPath;
+  const wf = await loadWorkflow(wfPath);
   const inputs = coerceInputs(args.inputs, wf.inputs);
   const provider = makeProvider('claude', 'api');
 
   if (!process.stdout.isTTY) {
     const logger = new LineLogger((line) => process.stdout.write(line + '\n'));
-    await runWorkflow(args.workflow, {
+    await runWorkflow(wfPath, {
       inputs,
       runId: args.resume,
       provider,
@@ -69,7 +79,7 @@ export async function main(argv: string[]): Promise<void> {
     }),
   );
 
-  await runWorkflow(args.workflow, {
+  await runWorkflow(wfPath, {
     inputs,
     runId: args.resume,
     provider,

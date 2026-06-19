@@ -16,7 +16,7 @@ plyflow run <file> [options]
 
 | Argument | Description |
 |----------|-------------|
-| `<file>` | Path to the workflow YAML file |
+| `<file>` | Path to the workflow YAML file, a `github:<owner>/<repo>/<path>@<ref>` shorthand, or a full `https://github.com/…` blob URL |
 
 ### Options
 
@@ -24,6 +24,8 @@ plyflow run <file> [options]
 |--------|-------------|
 | `--input <key=value>` | Set a workflow input. Repeat for multiple inputs. |
 | `--resume <runId>` | Resume a previous run from the first incomplete or changed step. |
+| `--refresh` | Re-fetch a remote workflow, bypassing the local cache. |
+| `--yes`, `-y` | Skip the remote-workflow trust prompt. |
 
 ### Examples
 
@@ -49,6 +51,18 @@ plyflow run ./long-workflow.yaml --input topic=AI --resume abc123def456
 plyflow run ./examples/mission/mission.yaml \
   --input issue=42 \
   --input models=director=claude-opus-4-5,inspector=claude-opus-4-5
+
+# Run a workflow directly from GitHub (shorthand)
+plyflow run github:org/repo/examples/wf.yaml@v1.0.0
+
+# Run a workflow directly from GitHub (full URL)
+plyflow run https://github.com/org/repo/blob/main/examples/wf.yaml
+
+# Re-fetch a cached remote workflow
+plyflow run github:org/repo/examples/wf.yaml@main --refresh
+
+# Skip the trust prompt in CI
+plyflow run github:org/repo/examples/wf.yaml@main --yes
 ```
 
 ## Input type coercion

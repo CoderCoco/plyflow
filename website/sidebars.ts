@@ -49,6 +49,11 @@ const sidebars: SidebarsConfig = {
     },
     {
       type: 'doc',
+      id: 'remote-workflows',
+      label: 'Running from GitHub',
+    },
+    {
+      type: 'doc',
       id: 'cli-reference',
       label: 'CLI Reference',
     },
