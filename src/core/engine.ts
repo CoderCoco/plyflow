@@ -4,6 +4,7 @@ import { StepRegistry } from '../steps/registry.js';
 import { runStep } from '../steps/run.js';
 import { agentStep } from '../steps/agent.js';
 import { inputStep } from '../steps/input.js';
+import { widgetStep } from '../steps/widget.js';
 import { makeParallelStep } from '../steps/parallel.js';
 import { makeLoopStep } from '../steps/loop.js';
 import { makeForeachStep } from '../steps/foreach.js';
@@ -40,6 +41,7 @@ export function buildDefaultRegistry(): StepRegistry {
   reg.register(runStep);
   reg.register(agentStep);
   reg.register(inputStep);
+  reg.register(widgetStep);
   reg.register(makeParallelStep(reg));
   reg.register(makeLoopStep());
   reg.register(makeForeachStep());
