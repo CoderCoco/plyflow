@@ -187,4 +187,107 @@ describe('ClaudeProvider agent-sdk mode', () => {
       maxTurns: 10,
     });
   });
+
+  it('passes allowedTools and permissionMode from params when provided', async () => {
+    let capturedOptions: Record<string, unknown> | undefined;
+
+    const makeResultStream = (): AsyncGenerator<SDKMessage, void> =>
+      makeStream([
+        {
+          type: 'result',
+          subtype: 'success',
+          duration_ms: 10,
+          duration_api_ms: 8,
+          is_error: false,
+          num_turns: 1,
+          result: 'ok',
+          stop_reason: 'end_turn',
+          total_cost_usd: 0,
+          usage: {
+            input_tokens: 1,
+            output_tokens: 1,
+            cache_creation_input_tokens: 0,
+            cache_read_input_tokens: 0,
+            server_tool_use: { web_search_requests: 0 },
+          },
+          modelUsage: {},
+          permission_denials: [],
+          uuid: '00000000-0000-0000-0000-000000000006' as `${string}-${string}-${string}-${string}-${string}`,
+          session_id: 'sess_4',
+        } as SDKMessage,
+      ]);
+
+    const fakeQuery = vi.fn((params: { prompt: string; options?: Record<string, unknown> }) => {
+      capturedOptions = params.options;
+      return makeResultStream();
+    });
+
+    const provider = new ClaudeProvider({
+      mode: 'agent-sdk',
+      agentQuery: fakeQuery as unknown as ClaudeProvider['agentQuery'],
+    });
+
+    // With explicit allowedTools and permissionMode — must be passed through
+    await provider.complete({
+      system: 'read only',
+      prompt: 'inspect the code',
+      model: 'claude-sonnet-4-6',
+      params: { allowedTools: ['Read'], permissionMode: 'default' },
+    });
+
+    expect(capturedOptions).toBeDefined();
+    expect(capturedOptions!.allowedTools).toEqual(['Read']);
+    expect(capturedOptions!.permissionMode).toBe('default');
+  });
+
+  it('falls back to default allowedTools and bypassPermissions when params omit them', async () => {
+    let capturedOptions: Record<string, unknown> | undefined;
+
+    const makeResultStream = (): AsyncGenerator<SDKMessage, void> =>
+      makeStream([
+        {
+          type: 'result',
+          subtype: 'success',
+          duration_ms: 10,
+          duration_api_ms: 8,
+          is_error: false,
+          num_turns: 1,
+          result: 'ok',
+          stop_reason: 'end_turn',
+          total_cost_usd: 0,
+          usage: {
+            input_tokens: 1,
+            output_tokens: 1,
+            cache_creation_input_tokens: 0,
+            cache_read_input_tokens: 0,
+            server_tool_use: { web_search_requests: 0 },
+          },
+          modelUsage: {},
+          permission_denials: [],
+          uuid: '00000000-0000-0000-0000-000000000007' as `${string}-${string}-${string}-${string}-${string}`,
+          session_id: 'sess_5',
+        } as SDKMessage,
+      ]);
+
+    const fakeQuery = vi.fn((params: { prompt: string; options?: Record<string, unknown> }) => {
+      capturedOptions = params.options;
+      return makeResultStream();
+    });
+
+    const provider = new ClaudeProvider({
+      mode: 'agent-sdk',
+      agentQuery: fakeQuery as unknown as ClaudeProvider['agentQuery'],
+    });
+
+    // No allowedTools or permissionMode in params — must fall back to defaults
+    await provider.complete({
+      system: 'be helpful',
+      prompt: 'do work',
+      model: 'claude-sonnet-4-6',
+    });
+
+    expect(capturedOptions).toBeDefined();
+    expect(capturedOptions!.allowedTools).toEqual(['Read', 'Edit', 'Write', 'Bash', 'Grep', 'Glob']);
+    expect(capturedOptions!.permissionMode).toBe('bypassPermissions');
+  });
 });

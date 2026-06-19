@@ -156,4 +156,4 @@ See `examples/plugins/` for a full working example.
 
 - `workflows/` auto-discovery + a TUI picker (run with no file argument)
 - MCP support on agents
-- Additional providers (OpenAI, etc.) and the Claude `agent-sdk` execution mode
+- Additional providers (OpenAI, etc.)

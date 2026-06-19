@@ -95,9 +95,11 @@ export class ClaudeProvider implements AIProvider {
 
     const cwd = typeof req.params?.cwd === 'string' ? req.params.cwd : process.cwd();
     const maxTurns = typeof req.params?.maxTurns === 'number' ? req.params.maxTurns : 50;
-
-    // Allowed built-in Claude Code tools
-    const allowedTools = ['Read', 'Edit', 'Write', 'Bash', 'Grep', 'Glob'];
+    const allowedTools = Array.isArray(req.params?.allowedTools)
+      ? (req.params.allowedTools as string[])
+      : ['Read', 'Edit', 'Write', 'Bash', 'Grep', 'Glob'];
+    const permissionMode =
+      typeof req.params?.permissionMode === 'string' ? req.params.permissionMode : 'bypassPermissions';
 
     const options: Parameters<AgentQueryFn>[0]['options'] = {
       model: req.model,
@@ -105,7 +107,7 @@ export class ClaudeProvider implements AIProvider {
       systemPrompt: req.system,
       allowedTools,
       maxTurns,
-      permissionMode: 'bypassPermissions',
+      permissionMode,
     };
 
     // When a schema is provided, use the SDK's native outputFormat for structured output
