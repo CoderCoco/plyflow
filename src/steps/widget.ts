@@ -33,6 +33,7 @@ export const widgetStep: StepType<WidgetStepConfig> = {
       module: absModule,
       baseDir: ctx.baseDir,
       props: ctx.with,
+      provided: ctx.provided,
     });
     return { output: resolved };
   },

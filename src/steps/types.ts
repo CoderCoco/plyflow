@@ -7,7 +7,7 @@ export type StepEvent =
 
 export type UiRequest =
   | { kind: 'prompt'; type: 'confirm' | 'text' | 'select'; message: string; choices?: string[] }
-  | { kind: 'widget'; module: string; baseDir: string; props: unknown };
+  | { kind: 'widget'; module: string; baseDir: string; props: unknown; provided?: string[] };
 
 /**
  * Type alias for the prompt-kind shape of UiRequest.
@@ -27,6 +27,8 @@ export interface StepContext {
   baseDir: string;
   /** Whether the process is running in an interactive TTY. */
   isTty: boolean;
+  /** Bare specifiers whose modules are shared with plyflow's own copies (from workflow's package.json plyflow.provided). */
+  provided: string[];
   resolve?(value: unknown): unknown;
   emit(event: StepEvent): void;
   prompt(req: UiRequest): Promise<unknown>;

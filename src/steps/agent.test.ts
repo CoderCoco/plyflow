@@ -11,6 +11,7 @@ const loader = createLoader({ baseDir });
 const ctx = (provider: any, over: Partial<StepContext> = {}): StepContext => ({
   inputs: {}, env: {}, steps: {}, with: {}, provider, baseDir,
   isTty: true,
+  provided: ['zod', 'react', 'ink'],
   emit: () => {}, prompt: async () => undefined,
   loadModule: loader.import.bind(loader), ...over,
 });

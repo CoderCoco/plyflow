@@ -6,6 +6,7 @@ import type { StepContext, UiRequest } from '../steps/types.js';
 import type { AIProvider } from '../providers/types.js';
 import type { StepDef } from './types.js';
 import type { EngineEvent } from './engine.js';
+import { DEFAULT_PROVIDED } from './module-loader.js';
 
 export interface ExecScope {
   inputs: Record<string, unknown>;
@@ -20,6 +21,7 @@ export interface ExecScope {
   journalPath: string;
   dirty: Set<string>;
   isTty: boolean;
+  provided: string[];
   loadModule(path: string): Promise<unknown>;
   emit(e: EngineEvent): void;
   prompt(stepId: string, req: UiRequest): Promise<unknown>;
@@ -40,6 +42,7 @@ export interface RootScopeOptions {
   journalPath: string;
   dirty: Set<string>;
   isTty: boolean;
+  provided?: string[];
   loadModule(path: string): Promise<unknown>;
   emit(e: EngineEvent): void;
   prompt(stepId: string, req: UiRequest): Promise<unknown>;
@@ -72,6 +75,7 @@ function makeRunChildren(
       journalPath: `${parentScope.journalPath}/${subPath}`,
       dirty: parentScope.dirty,
       isTty: parentScope.isTty,
+      provided: parentScope.provided,
       loadModule: parentScope.loadModule,
       emit: parentScope.emit,
       prompt: parentScope.prompt,
@@ -97,6 +101,7 @@ export function createRootScope(opts: RootScopeOptions): ExecScope {
     journalPath: opts.journalPath,
     dirty: opts.dirty,
     isTty: opts.isTty,
+    provided: opts.provided ?? DEFAULT_PROVIDED,
     loadModule: opts.loadModule,
     emit: opts.emit,
     prompt: opts.prompt,
@@ -197,6 +202,7 @@ export async function runSteps(
       provider: scope.provider,
       baseDir: scope.baseDir,
       isTty: scope.isTty,
+      provided: scope.provided,
       loadModule: scope.loadModule,
       resolve: (value: unknown) => resolveExpr(value, exprCtx()),
       emit: (ev) => {

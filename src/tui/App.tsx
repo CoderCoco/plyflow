@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Box, Text, useApp } from 'ink';
 import { ProgressTree, type PhaseView, type StepView } from './ProgressTree.js';
 import { Prompt } from './prompts.js';
-import { createLoader } from '../core/module-loader.js';
+import { createLoader, DEFAULT_PROVIDED } from '../core/module-loader.js';
 import type { EngineEvent } from '../core/engine.js';
 import type { UiRequest, PromptRequest } from '../steps/types.js';
 import type { WorkflowFile } from '../core/types.js';
@@ -75,7 +75,7 @@ function WidgetHost({ request, onResolve }: WidgetHostProps): React.ReactElement
       setComponent(widgetCache.get(request.module)!);
       return;
     }
-    const loader = createLoader({ baseDir: request.baseDir, jsx: true });
+    const loader = createLoader({ baseDir: request.baseDir, provided: request.provided ?? DEFAULT_PROVIDED, jsx: true });
     let cancelled = false;
     loader.import(request.module).then((mod) => {
       if (cancelled) return;

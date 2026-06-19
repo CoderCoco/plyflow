@@ -52,6 +52,7 @@ function makeCtxWithRunChildren(tmpDir?: string, journalPath = 'test'): StepCont
     provider,
     baseDir,
     isTty: true,
+    provided: ['zod', 'react', 'ink'],
     loadModule: noopLoadModule,
     emit: () => {},
     prompt: async () => undefined,
@@ -154,7 +155,8 @@ describe('loop step', () => {
     const cfg = loop.parse(loopDef);
     const ctx: StepContext = {
       inputs: {}, env: {}, steps: {}, with: {},
-      provider, baseDir: '.', isTty: true, emit: () => {}, prompt: async () => undefined,
+      provider, baseDir: '.', isTty: true, provided: ['zod', 'react', 'ink'],
+      emit: () => {}, prompt: async () => undefined,
       loadModule: noopLoadModule,
     };
     await expect(loop.run(cfg, ctx)).rejects.toThrow('runChildren');
@@ -323,6 +325,7 @@ describe('Fix D — until bindings contain iteration, not ctx.with', () => {
         provider,
         baseDir: tmpDir,
         isTty: true,
+        provided: ['zod', 'react', 'ink'],
         loadModule: noopLoadModule,
         emit: () => {},
         prompt: async () => undefined,

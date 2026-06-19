@@ -28,6 +28,7 @@ function makeCtx() {
     provider: null as never,
     baseDir: '.',
     isTty: false,
+    provided: ['zod', 'react', 'ink'],
     emit: () => undefined,
     prompt: async () => undefined,
     loadModule: async () => undefined,

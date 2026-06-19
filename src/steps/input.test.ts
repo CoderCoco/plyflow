@@ -11,6 +11,7 @@ function makeCtx(overrides: Partial<StepContext> = {}): StepContext {
     provider: {} as any,
     baseDir: '.',
     isTty: true,
+    provided: ['zod', 'react', 'ink'],
     emit: () => {},
     prompt: async (_r: UiRequest) => true,
     loadModule: async (_path: string) => ({}),

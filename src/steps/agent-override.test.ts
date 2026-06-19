@@ -31,6 +31,7 @@ function makeCtx(provider: any, over: Partial<StepContext> = {}): StepContext {
     provider,
     baseDir: fixturesDir,
     isTty: true,
+    provided: ['zod', 'react', 'ink'],
     emit: () => {},
     prompt: async () => undefined,
     loadModule: fixturesLoader.import.bind(fixturesLoader),

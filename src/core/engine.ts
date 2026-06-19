@@ -134,6 +134,7 @@ export async function runWorkflow(
         journalPath: `phase:${phase.name}`,
         dirty,
         isTty,
+        provided: env.provided,
         loadModule: (path) => loader.import(path),
         emit,
         prompt,

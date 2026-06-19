@@ -3,6 +3,7 @@ import path from 'node:path';
 import { widgetStep } from './widget.js';
 import type { StepContext } from './types.js';
 import type { StepDef } from '../core/types.js';
+import { DEFAULT_PROVIDED } from '../core/module-loader.js';
 
 function makeCtx(overrides: Partial<StepContext> = {}): StepContext {
   return {
@@ -13,6 +14,7 @@ function makeCtx(overrides: Partial<StepContext> = {}): StepContext {
     provider: {} as StepContext['provider'],
     baseDir: '/home/chris/GitHub/plyflow/workflows',
     isTty: true,
+    provided: DEFAULT_PROVIDED,
     emit: vi.fn(),
     prompt: vi.fn().mockResolvedValue('widget-result'),
     loadModule: vi.fn(),
@@ -71,6 +73,7 @@ describe('widgetStep.run — TTY mode', () => {
     expect(req.module).toBe(path.resolve('/base/dir', './MyWidget.tsx'));
     expect(req.baseDir).toBe('/base/dir');
     expect(req.props).toBe(withProps);
+    expect(req.provided).toEqual(DEFAULT_PROVIDED);
     expect(result).toEqual({ output: 'widget-resolved' });
   });
 
@@ -83,6 +86,18 @@ describe('widgetStep.run — TTY mode', () => {
 
     const req = prompt.mock.calls[0][0];
     expect(req.module).toBe('/abs/path/Widget.tsx');
+  });
+
+  it('forwards custom provided set from ctx into the widget UiRequest', async () => {
+    const customProvided = ['zod', 'react', 'ink', 'my-custom-lib'];
+    const prompt = vi.fn().mockResolvedValue('resolved');
+    const ctx = makeCtx({ isTty: true, prompt, baseDir: '/base/dir', provided: customProvided });
+    const cfg = widgetStep.parse(makeDef('./MyWidget.tsx'));
+
+    await widgetStep.run(cfg, ctx);
+
+    const req = prompt.mock.calls[0][0];
+    expect(req.provided).toEqual(customProvided);
   });
 });
 
