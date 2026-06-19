@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
-import { Box, useApp } from 'ink';
+import React, { useEffect, useRef, useState } from 'react';
+import { Box, Text, useApp } from 'ink';
 import { ProgressTree, type PhaseView, type StepView } from './ProgressTree.js';
 import { Prompt } from './prompts.js';
+import { createLoader } from '../core/module-loader.js';
 import type { EngineEvent } from '../core/engine.js';
 import type { UiRequest, PromptRequest } from '../steps/types.js';
 import type { WorkflowFile } from '../core/types.js';
@@ -17,6 +18,76 @@ export interface AppProps {
   events: AsyncIterable<EngineEvent>;
   registerPrompt: (handler: (stepId: string, req: UiRequest) => Promise<unknown>) => void;
   onDone: () => void;
+}
+
+/**
+ * Widget component contract:
+ *   props `{ data: unknown, resolve: (value: unknown) => void }`
+ *
+ * The App passes these to every custom widget component it mounts:
+ *   - `data`    — the `props` field from the `widget` UiRequest (workflow step output)
+ *   - `resolve` — call this to complete the pending UI request and return a value
+ *                 to the workflow engine (mirrors the prompt's `onResolve` callback)
+ */
+type WidgetComponent = React.ComponentType<{ data: unknown; resolve: (value: unknown) => void }>;
+
+/** Cache of already-loaded widget modules, keyed by absolute module path. */
+const widgetCache = new Map<string, WidgetComponent>();
+
+interface WidgetHostProps {
+  request: Extract<UiRequest, { kind: 'widget' }>;
+  onResolve: (value: unknown) => void;
+}
+
+/**
+ * WidgetHost loads a custom widget component from the given module path using
+ * the central module loader (so the widget's react/ink resolve to plyflow's
+ * own copies — required for Ink context to work correctly).
+ *
+ * Rendering lifecycle:
+ *   1. First render: `component` state is null → renders a "loading…" Text.
+ *   2. useEffect fires: if the module is already in the cache, uses it directly;
+ *      otherwise builds a loader and imports the module, then sets state.
+ *   3. Re-render: `component` is set → renders `<Component data={...} resolve={...} />`.
+ *
+ * The cache (`widgetCache`) prevents reloading the same module if the component
+ * re-renders (e.g. due to parent state changes) before the widget resolves.
+ */
+function WidgetHost({ request, onResolve }: WidgetHostProps): React.ReactElement | null {
+  const [component, setComponent] = useState<WidgetComponent | null>(() => {
+    // Synchronously use the cache on initial render to avoid a loading flash
+    // when the module was already loaded in this process session.
+    return widgetCache.get(request.module) ?? null;
+  });
+
+  // Stable ref so the effect closure doesn't capture a stale onResolve.
+  const onResolveRef = useRef(onResolve);
+  onResolveRef.current = onResolve;
+
+  useEffect(() => {
+    if (widgetCache.has(request.module)) {
+      setComponent(widgetCache.get(request.module)!);
+      return;
+    }
+    const loader = createLoader({ baseDir: request.baseDir, jsx: true });
+    let cancelled = false;
+    loader.import(request.module).then((mod) => {
+      if (cancelled) return;
+      // Support both ESM default export and CommonJS module.exports patterns.
+      const ns = mod as Record<string, unknown>;
+      const Comp = (ns['default'] ?? mod) as WidgetComponent;
+      widgetCache.set(request.module, Comp);
+      setComponent(() => Comp);
+    });
+    return () => { cancelled = true; };
+  }, [request.module, request.baseDir]);
+
+  if (!component) {
+    return <Text dimColor>loading…</Text>;
+  }
+
+  const Component = component;
+  return <Component data={request.props} resolve={onResolveRef.current} />;
 }
 
 function initialPhases(wf: WorkflowFile): PhaseView[] {
@@ -57,8 +128,8 @@ export function App({ workflow, events, registerPrompt, onDone }: AppProps): Rea
       // Cast is safe: PromptRequest is exactly the prompt-kind of UiRequest.
       return <Prompt request={p.request as PromptRequest} onResolve={p.resolve} />;
     }
-    // TODO(A3): widget kind — load and mount the custom component via the module loader.
-    throw new Error('widget rendering not yet wired (Task A3)');
+    // widget kind: delegate to WidgetHost which loads the component asynchronously.
+    return <WidgetHost request={p.request} onResolve={p.resolve} />;
   }
 
   return (

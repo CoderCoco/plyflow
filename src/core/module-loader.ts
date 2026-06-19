@@ -36,6 +36,12 @@ export interface LoaderOptions {
    * Defaults to `DEFAULT_PROVIDED`.
    */
   provided?: string[];
+  /**
+   * Enable JSX/TSX support via jiti's Babel JSX transform.
+   * Required when loading `.tsx` / `.jsx` widget components.
+   * Defaults to `false`.
+   */
+  jsx?: boolean;
 }
 
 export interface ModuleLoader {
@@ -99,6 +105,8 @@ export function createLoader(opts: LoaderOptions): ModuleLoader {
         // class instances (e.g. `schema instanceof z.ZodType`).  Disabling it
         // returns the raw module namespace, so identity checks work correctly.
         interopDefault: false,
+        // JSX/TSX support via Babel transform; required for widget components.
+        jsx: opts.jsx ?? false,
       });
       return (abs: string) => jiti.import(abs);
     })();
