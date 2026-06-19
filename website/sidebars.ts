@@ -53,6 +53,11 @@ const sidebars: SidebarsConfig = {
       label: 'CLI Reference',
     },
     {
+      type: 'doc',
+      id: 'programmatic-usage',
+      label: 'Programmatic Usage',
+    },
+    {
       type: 'category',
       label: 'Extensibility',
       items: [
@@ -65,6 +70,16 @@ const sidebars: SidebarsConfig = {
       type: 'doc',
       id: 'example-mission',
       label: 'Example: Mission Workflow',
+    },
+    {
+      type: 'doc',
+      id: 'troubleshooting',
+      label: 'Troubleshooting & FAQ',
+    },
+    {
+      type: 'doc',
+      id: 'contributing',
+      label: 'Contributing',
     },
   ],
 };

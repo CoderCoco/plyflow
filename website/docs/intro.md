@@ -3,56 +3,115 @@ slug: /
 sidebar_position: 1
 ---
 
-# Introduction
+# plyflow
 
-**plyflow** is a Node.js/TypeScript CLI that runs AI agent workflows defined in YAML files. Think of it as *GitHub Actions for AI agents*: workflows are DAGs of typed steps, AI steps call agents defined in Markdown files, and runs render a live progress tree in the terminal that can pause for human input.
+**Run AI agent workflows defined in YAML — with a live terminal UI, resume, and full TypeScript extensibility.**
+
+plyflow is "GitHub Actions for AI agents": workflows are DAGs of typed steps, AI steps call agents defined in Markdown files, and runs render a live progress tree in the terminal that can pause for human input.
+
+---
+
+## 30-second quick start
+
+```bash
+npm install -g plyflow
+export ANTHROPIC_API_KEY=sk-ant-…
+
+cat > summarize.yaml << 'EOF'
+name: Summarize
+inputs:
+  text:
+    required: true
+phases:
+  - name: Main
+    steps:
+      - id: summary
+        agent: ./summarizer.md
+        with:
+          prompt: ${{ inputs.text }}
+EOF
+
+plyflow run summarize.yaml --input text="The quick brown fox jumps over the lazy dog."
+```
+
+[Get the full walkthrough →](./getting-started.md)
+
+---
 
 ## Why plyflow?
 
-Most AI "workflow" tools lock you into rigid templates or proprietary scripting. plyflow takes a different approach:
+| Feature | Details |
+|---------|---------|
+| **YAML workflows** | Readable, version-controlled, shareable. Phases run sequentially; steps within a phase run in parallel. |
+| **Agents are Markdown** | System prompt is the file body; model/provider/mode are frontmatter. |
+| **TypeScript everywhere** | `run:` steps and `uses:` modules are real TypeScript — import any library. |
+| **DAG execution** | Steps declare `needs:` to sequence within a phase; everything else parallelises automatically. |
+| **Dynamic fan-out** | `foreach:` and `loop:` let workflows grow at runtime based on data. |
+| **Resume from any point** | Every run is journaled. Interrupted runs can be resumed, skipping already-completed steps. |
+| **Interactive terminal UI** | Live progress tree, human `input:` steps, and custom Ink/React `widget:` components. |
+| **Extensible** | Add custom step types (plugins), custom UI widgets, and per-workflow npm packages. |
 
-- **Workflows are YAML** — readable, version-controlled, and shareable.
-- **Agents are Markdown** — your system prompt is the file body; model/provider config is frontmatter.
-- **TypeScript everywhere** — inline `run:` steps and `uses:` modules are real TypeScript. Import any library. No sandboxing.
-- **DAG execution** — steps within a phase run in parallel by default, constrained by explicit `needs:` declarations.
-- **Dynamic fan-out** — `foreach:` and `loop:` let workflows grow at runtime based on data.
-- **Provider-agnostic** — currently ships with a Claude provider (`api`, `cli`, and `agent-sdk` modes); designed for additional providers.
-- **Resume from any point** — every run is journaled. Interrupted runs can be resumed, skipping already-completed steps.
-- **Extensible** — add custom UI widgets (Ink/React), custom step types (plugins), or workflow-local npm packages.
+---
 
-## Key concepts
-
-| Concept | Description |
-|---------|-------------|
-| **Workflow** | A YAML file with `name`, `inputs`, and `phases` |
-| **Phase** | An ordered group of steps; phases run sequentially |
-| **Step** | A unit of work with exactly one type key (`run`, `agent`, `input`, etc.) |
-| **Agent** | A Markdown file — frontmatter sets the model/provider, body is the system prompt |
-| **Expression** | `${{ }}` — interpolates inputs, step outputs, env vars, and loop bindings |
-| **Journal** | Per-run JSON file under `.plyflow/runs/` for resume and auditing |
-
-## The big picture
+## Key concepts at a glance
 
 ```
 workflow.yaml
   └── phases (sequential)
         └── steps (parallel, constrained by needs:)
-              ├── run:     TypeScript / JavaScript
-              ├── agent:   AI call → structured or text output
-              ├── input:   Pause for human input
+              ├── run:     Inline TypeScript / external .ts module
+              ├── agent:   AI call → text or structured JSON output
+              ├── input:   Pause for human input (confirm / text / select)
               ├── foreach: Dynamic fan-out over an array
               ├── loop:    Repeat until a condition is met
-              ├── widget:  Custom Ink/React terminal UI
+              ├── widget:  Custom Ink/React terminal UI component
               └── step:    Custom plugin step type
 ```
+
+| Concept | Description |
+|---------|-------------|
+| **Workflow** | A YAML file with `name`, optional `inputs`, and `phases` |
+| **Phase** | An ordered group of steps; phases run sequentially |
+| **Step** | A unit of work with exactly one type key (`run`, `agent`, `input`, etc.) |
+| **Agent** | A Markdown file — frontmatter sets model/provider, body is the system prompt |
+| **Expression** | `${{ }}` — interpolates inputs, step outputs, env vars, and loop bindings |
+| **Journal** | Per-run JSON file under `.plyflow/runs/` for resume and auditing |
+
+---
+
+## Explore the docs
+
+### Core concepts
+- [Getting Started](./getting-started.md) — install, write your first workflow, run it
+- [Workflow Files](./workflow-files.md) — full YAML reference (inputs, phases, expressions)
+- [Step Types](./steps/overview.md) — `run`, `agent`, `input`, `foreach`, `loop`, `widget`, `step`
+- [Agents & Providers](./agents-providers.md) — Markdown agent files, Claude provider modes
+- [Structured Output](./structured-output.md) — Zod schemas → forced JSON output from agents
+- [Resume & Journaling](./resume-journaling.md) — how journaling works, `--resume` flag
+
+### Reference & tools
+- [CLI Reference](./cli-reference.md) — all `plyflow` commands and flags
+- [Programmatic Usage](./programmatic-usage.md) — use plyflow as a Node.js library, testing with `FakeProvider`
+
+### Extensibility
+- [Custom Widgets](./extensibility/widgets.md) — Ink/React terminal UI components
+- [Plugins](./extensibility/plugins.md) — register custom step types
+- [Workflow Dependencies](./extensibility/workflow-dependencies.md) — per-workflow `package.json`
+
+### Example & help
+- [Example: Mission Workflow](./example-mission.md) — a full multi-phase AI software delivery workflow
+- [Troubleshooting & FAQ](./troubleshooting.md) — common errors and how to fix them
+- [Contributing](./contributing.md) — development setup, project layout, how to add a step type or provider
+
+---
 
 ## What can you build?
 
 - **Automated code-review pipelines** — scout changed files, fan out to specialist agents per language bucket, repair findings.
 - **Content generation workflows** — agent writes a draft, human confirms, another agent formats it.
-- **Software delivery agents** — plan an issue, implement it task-by-task, review, open a PR. (See [the mission example](./example-mission.md).)
+- **Software delivery agents** — plan an issue, implement it task-by-task, review, open a PR. (See the [mission example](./example-mission.md).)
 - **Data processing pipelines** — run TypeScript transforms between AI calls with full library access.
 
-## Status
+---
 
-plyflow is at **v0.3**. The core engine, all step types, the Claude provider, structured output, resume, widgets, and plugins are implemented and tested. See [Getting Started](./getting-started.md) to run your first workflow in minutes.
+plyflow is at **v0.3**. The core engine, all step types, the Claude provider (api / cli / agent-sdk modes), structured output, resume, widgets, and plugins are implemented and tested.
