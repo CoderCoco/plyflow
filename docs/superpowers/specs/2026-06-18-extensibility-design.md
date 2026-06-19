@@ -31,7 +31,7 @@ Build order is **C → A → B**: A needs C (a widget's `react`/`ink` must be pl
 
 ## Global Constraints
 
-- Node >= 20; ESM; intra-project imports use `.js`; TypeScript strict; Vitest; co-located `*.test.ts`.
+- Node >= 24; ESM; intra-project imports use `.js`; TypeScript strict; Vitest; co-located `*.test.ts`. Stack: Ink 7 + React 19, TypeScript 6, ESLint 10 (latest).
 - Local workflows TRUSTED (in-process execution, no sandbox).
 - `jiti` is the runtime loader for all user `.ts`/`.tsx`.
 - Conventional Commits.
@@ -173,7 +173,7 @@ The format-schema's "exactly one type key" refine adds `step` (and `widget`) to 
 - **C:** `module-loader` resolves a provided `zod` to plyflow's instance (assert `instanceof` works across a loaded schema); `workflow-env` auto-installs when deps missing and skips when present (fake `exec`); `plyflow.provided`/`plyflow.plugins` parsed from a fixture package.json. Refactor `schema/load.ts` to the loader + `instanceof`, keeping its tests green.
 - **A:** `widget` step sends the right UI request; the App mounts a fixture widget and resolves its value (`ink-testing-library`); non-TTY uses `default:` / errors. `input` gains `default:` + a test.
 - **B:** a fixture plugin (StepType and register-fn forms) registers and runs via `step:`; unregistered name errors; format-schema accepts `step`/`widget` and still enforces one-type-key.
-- Full suite + build + lint + built-binary smoke stay green on Node 20/22.
+- Full suite + build + lint + built-binary smoke stay green on Node 24.
 
 ## File structure (additions)
 

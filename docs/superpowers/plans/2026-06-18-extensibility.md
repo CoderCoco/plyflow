@@ -6,11 +6,11 @@
 
 **Architecture:** A central `jiti`-based module loader aliases host-provided libs (zod/react/ink) to plyflow's own copies and resolves user imports from the workflow dir. The engine prepares the workflow environment (auto-install deps) once per run, then all user-code loads (schemas, run/uses, widgets, plugins) go through the loader.
 
-**Tech Stack:** Node 20 ESM, TypeScript strict, jiti, Zod v4, Ink 5 + React 18, Vitest.
+**Tech Stack:** Node 24 ESM, TypeScript strict, jiti, Zod v4, Ink 7 + React 19, Vitest.
 
 ## Global Constraints
 
-- Node >= 20; ESM; `.js` imports; strict; co-located `*.test.ts`; TDD.
+- Node >= 24; ESM; `.js` imports; strict; co-located `*.test.ts`; TDD. (Use Node 24 via `export PATH="/home/chris/.nvm/versions/node/v24.15.0/bin:$PATH"` — Ink 7 needs Node ≥22.)
 - jiti loads all user `.ts`/`.tsx`. Local workflows TRUSTED (no sandbox).
 - All v0.2 tests (225) must stay green after every task. Build + lint + built-binary smoke stay green.
 - Conventional Commits. Build order is C → A → B.
