@@ -13,6 +13,7 @@ import type { AIProvider } from '../providers/types.js';
 import { createRootScope, runSteps } from './exec.js';
 import { createLoader } from './module-loader.js';
 import { prepareEnv, type Exec } from './workflow-env.js';
+import { loadPlugins } from './plugins.js';
 
 export type EngineEvent =
   | { type: 'phase-start'; phase: string }
@@ -67,16 +68,18 @@ export async function runWorkflow(
     onLog: (msg) => emit({ type: 'step-log', stepId: '__env__', message: msg }),
   });
 
-  // TODO(B3): env.plugins will be passed to loadPlugins() once pillar B3 lands.
-  // For now we resolve it so env prep side-effects (auto-install) run correctly.
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const _envPlugins = env.plugins;
-
   const wf = await loadWorkflow(workflowPath);
   const registry = opts.registry ?? buildDefaultRegistry();
   // Build the loader from the env-resolved dir + provided set (merges
   // DEFAULT_PROVIDED with any plyflow.provided entries from package.json).
   const loader = createLoader({ baseDir: env.dir, provided: env.provided });
+
+  // Load plugins: union of env.plugins (from package.json plyflow.plugins) and
+  // wf.plugins (from the workflow YAML plugins: field), deduped.
+  const pluginPaths = Array.from(new Set([...env.plugins, ...(wf.plugins ?? [])]));
+  if (pluginPaths.length > 0) {
+    await loadPlugins(pluginPaths, registry, (p) => loader.import(p));
+  }
   const runDir = opts.runDir ?? '.plyflow/runs';
 
   const inputs: Record<string, unknown> = { ...(opts.inputs ?? {}) };
