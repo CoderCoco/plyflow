@@ -19,6 +19,7 @@ export interface ExecScope {
   journal: Journal;
   journalPath: string;
   dirty: Set<string>;
+  loadModule(path: string): Promise<unknown>;
   emit(e: EngineEvent): void;
   prompt(stepId: string, req: PromptRequest): Promise<unknown>;
   runChildren(
@@ -37,6 +38,7 @@ export interface RootScopeOptions {
   journal: Journal;
   journalPath: string;
   dirty: Set<string>;
+  loadModule(path: string): Promise<unknown>;
   emit(e: EngineEvent): void;
   prompt(stepId: string, req: PromptRequest): Promise<unknown>;
 }
@@ -67,6 +69,7 @@ function makeRunChildren(
       journal: parentScope.journal,
       journalPath: `${parentScope.journalPath}/${subPath}`,
       dirty: parentScope.dirty,
+      loadModule: parentScope.loadModule,
       emit: parentScope.emit,
       prompt: parentScope.prompt,
       runChildren: null!, // set immediately below
@@ -90,6 +93,7 @@ export function createRootScope(opts: RootScopeOptions): ExecScope {
     journal: opts.journal,
     journalPath: opts.journalPath,
     dirty: opts.dirty,
+    loadModule: opts.loadModule,
     emit: opts.emit,
     prompt: opts.prompt,
     runChildren: null!, // set below after scope is constructed
@@ -188,6 +192,7 @@ export async function runSteps(
       bindings: scope.bindings,
       provider: scope.provider,
       baseDir: scope.baseDir,
+      loadModule: scope.loadModule,
       resolve: (value: unknown) => resolveExpr(value, exprCtx()),
       emit: (ev) => {
         if (ev.type === 'log') {

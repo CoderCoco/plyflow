@@ -34,6 +34,7 @@ function makeScope(overrideDir?: string) {
     journal,
     journalPath: 'phase:Test',
     dirty: new Set(),
+    loadModule: async (_path: string) => ({}),
     emit: () => {},
     prompt: () => Promise.reject(new Error('no prompt')),
   });
@@ -55,6 +56,7 @@ describe('runSteps', () => {
       journal,
       journalPath: 'phase:Test',
       dirty: new Set(),
+      loadModule: async (_path: string) => ({}),
       emit: (e) => events.push(e),
       prompt: () => Promise.reject(new Error('no prompt')),
     });

@@ -8,6 +8,7 @@ describe('inputStep', () => {
     const ctx = {
       inputs: {}, env: {}, steps: {}, with: {}, provider: {} as any, baseDir: '.',
       emit: () => {}, prompt: async (r: PromptRequest) => { seen = r; return true; },
+      loadModule: async (_path: string) => ({}),
     } as StepContext;
     const cfg = inputStep.parse({ id: 's', input: { type: 'confirm', message: 'ok?' } });
     const res = await inputStep.run(cfg, ctx);

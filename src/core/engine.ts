@@ -11,6 +11,7 @@ import { makeForeachStep } from '../steps/foreach.js';
 import type { PromptRequest } from '../steps/types.js';
 import type { AIProvider } from '../providers/types.js';
 import { createRootScope, runSteps } from './exec.js';
+import { createLoader, DEFAULT_PROVIDED } from './module-loader.js';
 
 export type EngineEvent =
   | { type: 'phase-start'; phase: string }
@@ -52,6 +53,7 @@ export async function runWorkflow(
   const wf = await loadWorkflow(workflowPath);
   const baseDir = dirname(workflowPath);
   const registry = opts.registry ?? buildDefaultRegistry();
+  const loader = createLoader({ baseDir, provided: DEFAULT_PROVIDED });
   const runDir = opts.runDir ?? '.plyflow/runs';
 
   const inputs: Record<string, unknown> = { ...(opts.inputs ?? {}) };
@@ -92,6 +94,7 @@ export async function runWorkflow(
         journal,
         journalPath: `phase:${phase.name}`,
         dirty,
+        loadModule: (path) => loader.import(path),
         emit,
         prompt,
       });

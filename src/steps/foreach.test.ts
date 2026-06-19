@@ -36,6 +36,7 @@ function makeScope(
     journal,
     journalPath,
     dirty,
+    loadModule: async (_path: string) => ({}),
     emit: (e) => events.push(e),
     prompt: async () => undefined,
   });
@@ -64,6 +65,7 @@ async function loadScope(
     journal,
     journalPath,
     dirty,
+    loadModule: async (_path: string) => ({}),
     emit: (e) => events.push(e),
     prompt: async () => undefined,
   });

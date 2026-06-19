@@ -25,6 +25,12 @@ export interface StepContext {
   emit(event: StepEvent): void;
   prompt(req: PromptRequest): Promise<unknown>;
   /**
+   * Load a user module via the run's shared module loader.
+   * Relative paths are resolved from the workflow's baseDir.
+   * Returns the full module namespace object.
+   */
+  loadModule(path: string): Promise<unknown>;
+  /**
    * Run a child sub-pipeline and return its outputs map.
    * Composite step types (loop, foreach, etc.) use this to recurse into
    * the engine so child steps get proper journal tracking, caching, and

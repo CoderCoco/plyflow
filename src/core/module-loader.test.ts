@@ -45,4 +45,13 @@ describe('createLoader', () => {
     const schema = (m as { default?: unknown }).default;
     expect(schema instanceof z.ZodType).toBe(true);
   });
+
+  it('nested import: a module that imports another user module (relative) loads correctly', async () => {
+    // Fixture: a-imports-b.ts imports ./b.ts (relative)
+    // This exercises the nested-resolution path through the loader.
+    const loader = createLoader({ baseDir: fixturesDir });
+    const m = await loader.import('./a-imports-b.ts');
+    // a-imports-b exports: result = 'a-got-from-b'
+    expect((m as { result?: unknown }).result).toBe('a-got-from-b');
+  });
 });

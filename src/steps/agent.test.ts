@@ -3,12 +3,15 @@ import { fileURLToPath } from 'node:url';
 import { dirname } from 'node:path';
 import { agentStep } from './agent.js';
 import { FakeProvider } from '../providers/fake.js';
+import { createLoader } from '../core/module-loader.js';
 import type { StepContext } from './types.js';
 
 const baseDir = dirname(fileURLToPath(new URL('./__fixtures__/x', import.meta.url)));
+const loader = createLoader({ baseDir });
 const ctx = (provider: any, over: Partial<StepContext> = {}): StepContext => ({
   inputs: {}, env: {}, steps: {}, with: {}, provider, baseDir,
-  emit: () => {}, prompt: async () => undefined, ...over,
+  emit: () => {}, prompt: async () => undefined,
+  loadModule: loader.import.bind(loader), ...over,
 });
 
 describe('agentStep', () => {

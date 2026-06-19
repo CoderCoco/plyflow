@@ -1,9 +1,6 @@
 import { resolve as resolvePath } from 'node:path';
-import { createJiti } from 'jiti';
 import type { StepDef } from '../core/types.js';
 import type { StepType, StepContext, StepResult } from './types.js';
-
-const jiti = createJiti(import.meta.url);
 
 interface RunCfg {
   module?: string; // path to load
@@ -15,7 +12,7 @@ function isPath(v: string): boolean {
 }
 
 async function callModule(absPath: string, input: unknown, ctx: StepContext): Promise<unknown> {
-  const mod = (await jiti.import(absPath)) as { default?: unknown };
+  const mod = (await ctx.loadModule(absPath)) as { default?: unknown };
   if (typeof mod.default !== 'function') {
     throw new Error(`module ${absPath} must "export default" a function`);
   }

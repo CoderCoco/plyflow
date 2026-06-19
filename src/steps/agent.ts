@@ -26,7 +26,9 @@ export const agentStep: StepType<AgentCfg> = {
   }),
   run: async (cfg: AgentCfg, ctx: StepContext): Promise<StepResult> => {
     const agent = await loadAgent(resolvePath(ctx.baseDir, cfg.agentPath));
-    const schema = cfg.outputPath ? await loadSchema(cfg.outputPath, ctx.baseDir) : undefined;
+    const schema = cfg.outputPath
+      ? await loadSchema(cfg.outputPath, ctx.baseDir, ctx.loadModule)
+      : undefined;
     const result = await ctx.provider.complete({
       system: agent.systemPrompt,
       prompt: cfg.prompt,

@@ -13,6 +13,9 @@ import type { StepDef } from '../core/types.js';
 // Minimal no-op provider
 const provider = {} as any;
 
+// Noop loader for tests that don't load user modules
+const noopLoadModule = async (_path: string): Promise<unknown> => ({});
+
 // Build a minimal StepContext backed by a real runChildren from exec
 function makeCtxWithRunChildren(tmpDir?: string, journalPath = 'test'): StepContext {
   const reg = new StepRegistry();
@@ -35,6 +38,7 @@ function makeCtxWithRunChildren(tmpDir?: string, journalPath = 'test'): StepCont
     journal,
     journalPath,
     dirty: new Set(),
+    loadModule: noopLoadModule,
     emit: () => {},
     prompt: async () => undefined,
   });
@@ -46,6 +50,7 @@ function makeCtxWithRunChildren(tmpDir?: string, journalPath = 'test'): StepCont
     with: {},
     provider,
     baseDir,
+    loadModule: noopLoadModule,
     emit: () => {},
     prompt: async () => undefined,
     runChildren: scope.runChildren,
@@ -68,6 +73,7 @@ function makeRootScope(tmpDir: string, journalPath = 'test') {
       journal,
       journalPath,
       dirty: new Set(),
+      loadModule: noopLoadModule,
       emit: () => {},
       prompt: async () => undefined,
     }),
@@ -146,6 +152,7 @@ describe('loop step', () => {
     const ctx: StepContext = {
       inputs: {}, env: {}, steps: {}, with: {},
       provider, baseDir: '.', emit: () => {}, prompt: async () => undefined,
+      loadModule: noopLoadModule,
     };
     await expect(loop.run(cfg, ctx)).rejects.toThrow('runChildren');
   });
@@ -286,6 +293,7 @@ describe('Fix D — until bindings contain iteration, not ctx.with', () => {
         journal,
         journalPath: 'phase:Test',
         dirty: new Set(),
+        loadModule: noopLoadModule,
         emit: () => {},
         prompt: async () => undefined,
       });
@@ -310,6 +318,7 @@ describe('Fix D — until bindings contain iteration, not ctx.with', () => {
         with: { secretVal: 42 },
         provider,
         baseDir: tmpDir,
+        loadModule: noopLoadModule,
         emit: () => {},
         prompt: async () => undefined,
         runChildren: scope.runChildren,
