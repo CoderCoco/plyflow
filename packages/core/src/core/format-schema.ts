@@ -2,7 +2,7 @@ import { z } from 'zod';
 import type { WorkflowFile, AgentConfig } from './types.js';
 
 const inputDef = z.object({
-  type: z.enum(['string', 'number', 'boolean']),
+  type: z.enum(['string', 'number', 'boolean', 'object', 'json', 'array']),
   required: z.boolean().optional(),
   default: z.unknown().optional(),
 });

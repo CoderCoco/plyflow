@@ -7,7 +7,7 @@ export interface WorkflowFile {
 }
 
 export interface InputDef {
-  type: 'string' | 'number' | 'boolean';
+  type: 'string' | 'number' | 'boolean' | 'object' | 'json' | 'array';
   required?: boolean;
   default?: unknown;
 }

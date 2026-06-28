@@ -269,3 +269,31 @@ describe('Fix 2 — bare if/until rejected at load', () => {
     ).not.toThrow();
   });
 });
+
+// ── A2: object/json/array input types ────────────────────────────────────────
+
+describe('structured input types', () => {
+  it('accepts object/json/array input types', () => {
+    const wf = parseWorkflow({
+      name: 'w',
+      inputs: {
+        cfg: { type: 'object', default: { a: 1 } },
+        raw: { type: 'json' },
+        items: { type: 'array', required: true },
+      },
+      phases: [{ name: 'p', steps: [{ id: 's', run: 'return 1' }] }],
+    });
+    expect(wf.inputs!.cfg!.type).toBe('object');
+    expect(wf.inputs!.items!.type).toBe('array');
+  });
+
+  it('still rejects an unknown input type', () => {
+    expect(() =>
+      parseWorkflow({
+        name: 'w',
+        inputs: { x: { type: 'banana' } },
+        phases: [{ name: 'p', steps: [{ id: 's', run: 'return 1' }] }],
+      }),
+    ).toThrow();
+  });
+});
