@@ -16,9 +16,9 @@ import React from 'react';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { App, __clearWidgetCache } from './App.js';
-import type { EngineEvent } from '../core/engine.js';
-import type { WorkflowFile } from '../core/types.js';
-import type { UiRequest } from '../steps/types.js';
+import type { EngineEvent } from '@plyflow/core';
+import type { WorkflowFile } from '@plyflow/core';
+import type { UiRequest } from '@plyflow/core';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 

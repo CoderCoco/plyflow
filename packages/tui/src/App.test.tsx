@@ -2,8 +2,8 @@ import { describe, it, expect, vi } from 'vitest';
 import { render } from 'ink-testing-library';
 import React from 'react';
 import { App } from './App.js';
-import type { EngineEvent } from '../core/engine.js';
-import type { WorkflowFile } from '../core/types.js';
+import type { EngineEvent } from '@plyflow/core';
+import type { WorkflowFile } from '@plyflow/core';
 
 describe('App', () => {
   it('calls onDone and renders done glyph when event stream completes', async () => {

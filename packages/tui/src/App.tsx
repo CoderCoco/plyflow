@@ -2,10 +2,10 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Box, Text, useApp } from 'ink';
 import { ProgressTree, type PhaseView, type StepView } from './ProgressTree.js';
 import { Prompt } from './prompts.js';
-import { createLoader, DEFAULT_PROVIDED } from '../core/module-loader.js';
-import type { EngineEvent } from '../core/engine.js';
-import type { UiRequest, PromptRequest } from '../steps/types.js';
-import type { WorkflowFile } from '../core/types.js';
+import { createLoader, DEFAULT_PROVIDED } from '@plyflow/core/module-loader';
+import type { EngineEvent } from '@plyflow/core';
+import type { UiRequest, PromptRequest } from '@plyflow/core';
+import type { WorkflowFile } from '@plyflow/core';
 
 interface PendingUi {
   stepId: string;
