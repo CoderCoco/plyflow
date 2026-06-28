@@ -18,6 +18,7 @@ A step has exactly one **type key** that determines what it does. The type key a
 | [`loop`](./loop.md) | Repeat child steps up to N iterations or until a condition |
 | [`foreach`](./foreach.md) | Dynamic fan-out over a runtime array |
 | [`widget`](./widget.md) | Custom Ink/React terminal UI component |
+| [`sh`](./sh.md) | Run a shell command and capture output |
 | [`step`](./plugin-step.md) | Custom plugin step type |
 
 ## Choosing a step type
@@ -26,6 +27,7 @@ A step has exactly one **type key** that determines what it does. The type key a
 Do you need AI inference?           → agent:
 Do you need user confirmation?      → input:
 Do you need to run TypeScript?      → run: (inline) or uses: (module)
+Do you need to run a shell command? → sh:
 Do you need a custom TUI?           → widget:
 Do you need to fan out over items?  → foreach:
 Do you need to retry until done?    → loop:

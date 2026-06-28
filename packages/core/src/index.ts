@@ -41,3 +41,8 @@ export type {
   UiRequest,
   PromptRequest,
 } from './steps/types.js';
+
+// Shell step (sh:) — primitive + factory for custom registries / testing
+export { makeShStep } from './steps/sh.js';
+export { defaultShellExec } from './core/shell.js';
+export type { ShellExec, ShellResult } from './core/shell.js';
