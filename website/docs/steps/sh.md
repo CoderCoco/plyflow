@@ -57,7 +57,7 @@ Parse `stdout` as JSON and expose it on the `json` field:
 
 ### `cwd`
 
-Override the working directory for the command. Supports expression interpolation. Defaults to the workflow file's directory.
+Override the working directory for the command. Supports expression interpolation. Defaults to the process's current working directory at runtime (the directory from which the `plyflow` command was invoked).
 
 ```yaml
 - id: test
@@ -67,7 +67,7 @@ Override the working directory for the command. Supports expression interpolatio
 
 ### `env`
 
-Merge extra environment variables into the command's environment. Values support expression interpolation.
+Layer extra environment variables over the inherited process environment (`process.env`). Listed keys override their inherited values; all other environment variables (including `PATH`, `HOME`, etc.) are inherited unchanged. Values support expression interpolation.
 
 ```yaml
 - id: deploy

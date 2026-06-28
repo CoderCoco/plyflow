@@ -20,4 +20,13 @@ describe('defaultShellExec', () => {
     });
     expect(r.stdout).toBe('bar');
   });
+
+  it('layers provided env over the inherited process env (PATH still works)', async () => {
+    // Pass ONLY an override, NOT a full env — the command relies on PATH (node) being inherited.
+    const r = await defaultShellExec(`node -e "process.stdout.write(process.env.PLY_X || '')"`, {
+      env: { PLY_X: 'yes' },
+    });
+    expect(r.code).toBe(0);
+    expect(r.stdout).toBe('yes');
+  });
 });

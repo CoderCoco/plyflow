@@ -24,7 +24,7 @@ export const defaultShellExec: ShellExec = (command, opts = {}) =>
     const child = spawn(command, {
       shell: true,
       cwd: opts.cwd,
-      env: opts.env ?? process.env,
+      env: opts.env ? { ...process.env, ...opts.env } : process.env,
     });
     let stdout = '';
     let stderr = '';
