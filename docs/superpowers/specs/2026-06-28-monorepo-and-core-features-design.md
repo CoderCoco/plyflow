@@ -87,7 +87,7 @@ example — those are domain knowledge, not framework gaps.
 
 ### Package set
 
-```
+```text
 packages/
   core/      → @plyflow/core      engine: loader, scheduler, exec, steps,
                                   expression, journal, providers, remote/
