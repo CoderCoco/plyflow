@@ -188,6 +188,26 @@ describe('B1 — step: type key and plugins: field', () => {
   });
 });
 
+// ── A1: sh step schema ───────────────────────────────────────────────────────
+
+const wrap = (step: Record<string, unknown>) => ({
+  name: 'w',
+  phases: [{ name: 'p', steps: [{ id: 's', ...step }] }],
+});
+
+describe('sh step schema', () => {
+  it('accepts a sh step with its optional fields', () => {
+    const wf = parseWorkflow(
+      wrap({ sh: 'echo hi', json: true, cwd: '/tmp', env: { A: 'b' }, dryRun: { stdout: 'x', code: 0 } }),
+    );
+    expect(wf.phases[0]!.steps[0]!.sh).toBe('echo hi');
+  });
+
+  it('rejects a step with both sh and run (exactly-one-type-key)', () => {
+    expect(() => parseWorkflow(wrap({ sh: 'echo hi', run: 'return 1' }))).toThrow();
+  });
+});
+
 // ── Fix 2: bare if/until rejected at schema load time ──────────────────────
 
 describe('Fix 2 — bare if/until rejected at load', () => {

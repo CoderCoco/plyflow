@@ -29,6 +29,7 @@ const sidebars: SidebarsConfig = {
         'steps/loop',
         'steps/foreach',
         'steps/widget',
+        'steps/sh',
         'steps/plugin-step',
       ],
     },

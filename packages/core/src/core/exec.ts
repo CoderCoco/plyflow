@@ -21,6 +21,7 @@ export interface ExecScope {
   journalPath: string;
   dirty: Set<string>;
   isTty: boolean;
+  dryRun: boolean;
   provided: string[];
   loadModule(path: string): Promise<unknown>;
   emit(e: EngineEvent): void;
@@ -42,6 +43,7 @@ export interface RootScopeOptions {
   journalPath: string;
   dirty: Set<string>;
   isTty: boolean;
+  dryRun?: boolean;
   provided?: string[];
   loadModule(path: string): Promise<unknown>;
   emit(e: EngineEvent): void;
@@ -75,6 +77,7 @@ function makeRunChildren(
       journalPath: `${parentScope.journalPath}/${subPath}`,
       dirty: parentScope.dirty,
       isTty: parentScope.isTty,
+      dryRun: parentScope.dryRun,
       provided: parentScope.provided,
       loadModule: parentScope.loadModule,
       emit: parentScope.emit,
@@ -101,6 +104,7 @@ export function createRootScope(opts: RootScopeOptions): ExecScope {
     journalPath: opts.journalPath,
     dirty: opts.dirty,
     isTty: opts.isTty,
+    dryRun: opts.dryRun ?? false,
     provided: opts.provided ?? DEFAULT_PROVIDED,
     loadModule: opts.loadModule,
     emit: opts.emit,
@@ -172,6 +176,10 @@ export async function runSteps(
       loop: step.loop,
       steps: step.steps,
       output: step.output,
+      sh: step.sh,
+      cwd: step.cwd,
+      env: step.env,
+      json: step.json,
     });
 
     const journalKey = `${scope.journalPath}/${step.id}`;
@@ -202,6 +210,7 @@ export async function runSteps(
       provider: scope.provider,
       baseDir: scope.baseDir,
       isTty: scope.isTty,
+      dryRun: scope.dryRun,
       provided: scope.provided,
       loadModule: scope.loadModule,
       resolve: (value: unknown) => resolveExpr(value, exprCtx()),

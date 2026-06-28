@@ -8,6 +8,7 @@ import { widgetStep } from '../steps/widget.js';
 import { makeParallelStep } from '../steps/parallel.js';
 import { makeLoopStep } from '../steps/loop.js';
 import { makeForeachStep } from '../steps/foreach.js';
+import { makeShStep } from '../steps/sh.js';
 import type { UiRequest } from '../steps/types.js';
 import type { AIProvider } from '../providers/types.js';
 import { createRootScope, runSteps } from './exec.js';
@@ -33,6 +34,8 @@ export interface RunOptions {
   prompt?: (stepId: string, req: UiRequest) => Promise<unknown>;
   /** Override TTY detection; defaults to !!process.stdout.isTTY. Useful for tests. */
   isTty?: boolean;
+  /** Run side-effecting steps (sh, …) in dry-run mode. Defaults to false. */
+  dryRun?: boolean;
   /** Injectable exec for running npm commands in prepareEnv; defaults to real npm. Useful for tests. */
   exec?: Exec;
 }
@@ -46,6 +49,7 @@ export function buildDefaultRegistry(): StepRegistry {
   reg.register(makeParallelStep(reg));
   reg.register(makeLoopStep());
   reg.register(makeForeachStep());
+  reg.register(makeShStep());
   return reg;
 }
 
@@ -134,6 +138,7 @@ export async function runWorkflow(
         journalPath: `phase:${phase.name}`,
         dirty,
         isTty,
+        dryRun: opts.dryRun ?? false,
         provided: env.provided,
         loadModule: (path) => loader.import(path),
         emit,
