@@ -10,7 +10,7 @@
     "test": "pnpm -r test && vitest run --config vitest.examples.config.ts",
     "test:watch": "vitest",
     "lint": "pnpm -r lint",
-    "dev": "tsx packages/cli/src/index.ts",
+    "dev": "tsx --conditions=@plyflow/source packages/cli/src/index.ts",
     "changeset": "changeset",
     "version-packages": "changeset version",
     "release": "pnpm -r build && changeset publish"
