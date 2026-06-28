@@ -1,4 +1,6 @@
 import { describe, it, expect } from 'vitest';
+import { tmpdir } from 'os';
+import { realpathSync } from 'fs';
 import { defaultShellExec } from './shell.js';
 
 describe('defaultShellExec', () => {
@@ -15,10 +17,14 @@ describe('defaultShellExec', () => {
   });
 
   it('runs in the given cwd and passes env', async () => {
-    const r = await defaultShellExec(`node -e "process.stdout.write(process.env.FOO || '')"`, {
-      env: { ...process.env, FOO: 'bar' },
-    });
-    expect(r.stdout).toBe('bar');
+    const cwd = realpathSync(tmpdir());
+    const r = await defaultShellExec(
+      `node -e "process.stdout.write(process.cwd() + '|' + (process.env.FOO || ''))"`,
+      { cwd, env: { ...process.env, FOO: 'bar' } },
+    );
+    const [spawnedCwd, foo] = r.stdout.split('|');
+    expect(spawnedCwd).toBe(cwd);
+    expect(foo).toBe('bar');
   });
 
   it('layers provided env over the inherited process env (PATH still works)', async () => {
