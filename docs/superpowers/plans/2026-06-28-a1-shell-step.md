@@ -15,7 +15,7 @@
 - **Test gate is vitest** (`pnpm --filter @plyflow/core test`), not `tsc`. Run `node -v` ⇒ must be v24.x; if it shows v20 run `source "$HOME/.nvm/nvm.sh" && nvm use 24.18.0`.
 - **TDD:** failing test first (watch it fail), minimal implementation, watch it pass, commit. Tests live beside source as `*.test.ts`.
 - **Exactly-one step-type key:** the schema's exclusive-or refinement must include `sh` so `sh` + `run` (etc.) on one step is rejected.
-- **Expression resolution:** `sh`/`cwd`/`env`/`dryRun` values may contain `${{ }}`; resolve them at run time via `ctx.resolve(...)` (the same way `agent.ts` resolves `model`). Do NOT resolve in `parse`.
+- **Expression resolution:** `sh`/`cwd`/`env` values may contain `${{ }}`; resolve them at run time via `ctx.resolve(...)` (the same way `agent.ts` resolves `model`). Do NOT resolve in `parse`.
 - **Non-zero exit throws** (message includes the exit code and stderr), so the engine's existing `continueOnError`/`retry` handling applies uniformly. Under dry-run, the step never throws for exit code.
 - All work is in `packages/core`; do not touch tui/cli/meta in this plan.
 
