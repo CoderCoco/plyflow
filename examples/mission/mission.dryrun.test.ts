@@ -21,8 +21,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { runWorkflow } from '../../src/core/engine.js';
-import type { AIProvider, AICompleteRequest, AIResult } from '../../src/providers/types.js';
+import { runWorkflow } from '@plyflow/core';
+import type { AIProvider, AICompleteRequest, AIResult } from '@plyflow/core';
 
 // ---------------------------------------------------------------------------
 // Paths

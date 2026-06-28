@@ -16,6 +16,7 @@
     "release": "pnpm -r build && changeset publish"
   },
   "devDependencies": {
+    "@plyflow/core": "workspace:*",
     "@changesets/cli": "^2.31.0",
     "@eslint/js": "^10.0.1",
     "@types/node": "^26.0.1",

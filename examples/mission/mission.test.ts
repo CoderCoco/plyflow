@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { fileURLToPath } from 'node:url';
-import { loadWorkflow } from '../../src/core/loader.js';
+import { loadWorkflow } from '@plyflow/core';
 
 const missionYaml = fileURLToPath(new URL('./mission.yaml', import.meta.url));
 
