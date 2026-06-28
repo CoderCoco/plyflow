@@ -78,7 +78,7 @@ Each pack exports a plugin **register function** (the existing
 through the **same injectable `exec` primitive the `sh` step uses** (imported from
 `@plyflow/core`), so dry-run and test mocking work uniformly.
 
-```
+```text
 plugins/
   git/     → @plyflow/git
     src/
