@@ -15,6 +15,30 @@ describe('hashStep', () => {
     expect(hashStep({ a: 1 })).toBe(hashStep({ a: 1 }));
     expect(hashStep({ a: 1 })).not.toBe(hashStep({ a: 2 }));
   });
+
+  it('produces different hashes when sh: command changes (regression: sh fields must be included)', () => {
+    const base = { id: 'cmd', type: 'sh', inputs: {}, with: {}, sh: 'echo hello' };
+    const changed = { ...base, sh: 'echo world' };
+    expect(hashStep(base)).not.toBe(hashStep(changed));
+  });
+
+  it('produces different hashes when cwd changes', () => {
+    const base = { id: 'cmd', type: 'sh', inputs: {}, with: {}, sh: 'ls', cwd: '/tmp' };
+    const changed = { ...base, cwd: '/var' };
+    expect(hashStep(base)).not.toBe(hashStep(changed));
+  });
+
+  it('produces different hashes when env changes', () => {
+    const base = { id: 'cmd', type: 'sh', inputs: {}, with: {}, sh: 'ls', env: { NODE_ENV: 'test' } };
+    const changed = { ...base, env: { NODE_ENV: 'production' } };
+    expect(hashStep(base)).not.toBe(hashStep(changed));
+  });
+
+  it('produces different hashes when json flag changes', () => {
+    const base = { id: 'cmd', type: 'sh', inputs: {}, with: {}, sh: 'echo {}', json: false };
+    const changed = { ...base, json: true };
+    expect(hashStep(base)).not.toBe(hashStep(changed));
+  });
 });
 
 describe('Journal', () => {

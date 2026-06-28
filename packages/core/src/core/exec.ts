@@ -176,6 +176,10 @@ export async function runSteps(
       loop: step.loop,
       steps: step.steps,
       output: step.output,
+      sh: step.sh,
+      cwd: step.cwd,
+      env: step.env,
+      json: step.json,
     });
 
     const journalKey = `${scope.journalPath}/${step.id}`;

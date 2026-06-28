@@ -47,7 +47,7 @@ Parse `stdout` as JSON and expose it on the `json` field:
 
 ```yaml
 - id: info
-  sh: node --version --json
+  sh: node -e "console.log(JSON.stringify({version: process.version}))"
   json: true
 
 - id: use
@@ -89,7 +89,7 @@ Declare a mock result to return when the engine is in dry-run mode. Use this for
     code: 0
 ```
 
-When `dryRun:` is omitted and the engine is running with `--dry-run`, the step returns `{ stdout: '', stderr: '', code: 0 }` without executing the command.
+When `dryRun:` is omitted and the engine is running in dry-run mode, the step returns `{ stdout: '', stderr: '', code: 0 }` without executing the command.
 
 ## Non-zero exit codes
 
@@ -122,12 +122,12 @@ This integrates uniformly with the standard `continueOnError` and `retry` step f
 
 ## Dry-run mode
 
-The `sh:` step honors the engine's `--dry-run` flag. When dry-run is active:
+The `sh:` step honors the engine's dry-run mode. When dry-run is active:
 
 1. If the step has a `dryRun:` declaration, that mock result is returned immediately — the real command is never spawned.
 2. If there is no `dryRun:` declaration, the step returns `{ stdout: '', stderr: '', code: 0 }` without spawning a process.
 
-This means a workflow with destructive shell commands can be previewed safely with `plyflow run --dry-run <file.yaml>`.
+This means a workflow with destructive shell commands can be previewed safely when the engine runs in dry-run mode.
 
 ## Programmatic use
 
