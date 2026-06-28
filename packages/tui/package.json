@@ -10,12 +10,15 @@
   "scripts": { "build": "tsdown", "test": "vitest run", "lint": "eslint src" },
   "dependencies": {
     "@plyflow/core": "workspace:*",
-    "ink": "^7.1.0",
+    "ink": "^7.1.0"
+  },
+  "peerDependencies": {
     "react": "^19.2.0"
   },
   "devDependencies": {
     "@types/react": "^19.2.0",
     "ink-testing-library": "^4.0.0",
+    "react": "^19.2.0",
     "react-devtools-core": "^6.1.2"
   }
 }
