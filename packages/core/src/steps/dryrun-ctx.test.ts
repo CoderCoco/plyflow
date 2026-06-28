@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { it, expect } from 'vitest';
 import { runWorkflow, buildDefaultRegistry } from '../core/engine.js';
 import { StepRegistry } from './registry.js';
 import type { StepType } from './types.js';
