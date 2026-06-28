@@ -6,6 +6,7 @@
   "engines": { "node": ">=24" },
   "publishConfig": { "access": "public" },
   "bin": { "plyflow": "./dist/index.js" },
+  "exports": { ".": { "@plyflow/source": "./src/index.ts", "default": "./dist/index.js" } },
   "files": ["dist"],
   "scripts": { "build": "tsdown", "test": "vitest run", "lint": "eslint src" },
   "dependencies": {

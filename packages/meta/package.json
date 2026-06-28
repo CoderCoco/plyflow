@@ -8,7 +8,7 @@
   "bin": { "plyflow": "./bin.js" },
   "exports": { ".": { "@plyflow/source": "./src/index.ts", "default": "./dist/index.js" } },
   "files": ["dist", "bin.js"],
-  "scripts": { "build": "tsdown", "test": "vitest run --passWithNoTests", "lint": "eslint src" },
+  "scripts": { "build": "tsdown", "test": "vitest run", "lint": "eslint src" },
   "dependencies": {
     "@plyflow/core": "workspace:*",
     "@plyflow/cli": "workspace:*"
