@@ -93,7 +93,7 @@ When `dryRun:` is omitted and the engine is running in dry-run mode, the step re
 
 ## Non-zero exit codes
 
-A non-zero exit code causes the step to **throw an error** by default. The error message includes the exit code and the last line of stderr (or stdout if stderr is empty).
+A non-zero exit code causes the step to **throw an error** by default. The error message includes the exit code and the trimmed stderr (or stdout if stderr is empty).
 
 This integrates uniformly with the standard `continueOnError` and `retry` step fields:
 
