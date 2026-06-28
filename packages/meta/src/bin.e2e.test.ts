@@ -2,12 +2,13 @@ import { describe, it, expect } from 'vitest';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const run = promisify(execFile);
 
 // Resolve relative to this source file using import.meta (vitest sets this correctly)
 // The test lives at packages/meta/src/bin.e2e.test.ts → go up two dirs to packages/meta/
-const BIN_PATH = resolve(new URL('.', import.meta.url).pathname, '..', 'bin.js');
+const BIN_PATH = resolve(fileURLToPath(new URL('.', import.meta.url)), '..', 'bin.js');
 
 describe('plyflow meta bin', () => {
   it('executes the CLI via built dist (not a module-resolution error)', async () => {
