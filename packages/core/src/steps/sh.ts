@@ -44,10 +44,17 @@ export function makeShStep(exec: ShellExec = defaultShellExec): StepType<ShCfg> 
 
       const command = resolveStr(ctx, cfg.command)!;
       const cwd = resolveStr(ctx, cfg.cwd);
-      let env: Record<string, string> | undefined = cfg.env;
-      if (env && ctx.resolve) {
-        env = Object.fromEntries(Object.entries(env).map(([k, v]) => [k, ctx.resolve!(v) as string]));
+      let resolvedEnv: Record<string, string> | undefined = cfg.env;
+      if (resolvedEnv && ctx.resolve) {
+        resolvedEnv = Object.fromEntries(Object.entries(resolvedEnv).map(([k, v]) => [k, ctx.resolve!(v) as string]));
       }
+      const ctxEnv = Object.fromEntries(
+        Object.entries(ctx.env).filter((e): e is [string, string] => e[1] !== undefined),
+      );
+      const hasEnv = Object.keys(ctxEnv).length > 0 || (resolvedEnv !== undefined && Object.keys(resolvedEnv).length > 0);
+      const env: Record<string, string> | undefined = hasEnv
+        ? { ...ctxEnv, ...resolvedEnv }
+        : undefined;
 
       const r = await exec(command, { cwd, env });
       if (r.code !== 0) {
