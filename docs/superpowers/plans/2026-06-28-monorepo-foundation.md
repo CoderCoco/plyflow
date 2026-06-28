@@ -144,6 +144,7 @@ prefer-workspace-packages=true
   "private": true,
   "type": "module",
   "engines": { "node": ">=24" },
+  "packageManager": "pnpm@11.9.0",
   "scripts": {
     "build": "pnpm -r build",
     "test": "pnpm -r test && vitest run --config vitest.examples.config.ts",
@@ -155,14 +156,14 @@ prefer-workspace-packages=true
     "release": "pnpm -r build && changeset publish"
   },
   "devDependencies": {
-    "@changesets/cli": "^2.27.0",
-    "@eslint/js": "^10.0.0",
-    "@types/node": "^24.0.0",
-    "eslint": "^10.0.0",
-    "tsdown": "^0.15.0",
+    "@changesets/cli": "^2.31.0",
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^26.0.1",
+    "eslint": "^10.6.0",
+    "tsdown": "^0.22.3",
     "tsx": "^4.22.4",
-    "typescript": "^6.0.0",
-    "typescript-eslint": "^8.61.0",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.62.0",
     "vitest": "^4.1.9"
   }
 }
@@ -718,4 +719,4 @@ git commit -m "ci+docs: changesets release workflow; document monorepo layout"
 
 **Type/name consistency:** Cross-package import targets match the four `@plyflow/core` entry points declared in Task 2 (`.`, `/module-loader`, `/remote`, `/remote/trust`); tui consumes `App`/`LineLogger` produced by the Task 3 barrel; cli consumes those plus the core barrel; meta re-exports the core barrel. Package names (`@plyflow/core|tui|cli`, `plyflow`) are consistent throughout. ✅
 
-**Verified version-sensitive values to confirm at execution time** (pin to current latest when implementing): `tsdown` (`^0.15.0` is a placeholder floor — check latest), `@changesets/cli` (`^2.27.0`), and the `changesets/action` major. These are tooling floors, not API contracts; bump to current before the first `pnpm install`.
+**Toolchain versions (resolved to latest at 2026-06-28, per user request "use latest tools"):** pnpm `11.9.0` (root `packageManager` + corepack), `tsdown ^0.22.3`, `@changesets/cli ^2.31.0`, `typescript ^6.0.3`, `eslint ^10.6.0`, `@eslint/js ^10.0.1`, `typescript-eslint ^8.62.0`, `@types/node ^26.0.1`, `vitest ^4.1.9`, `tsx ^4.22.4`, `changesets/action@v1`. Node pinned to `24.18.0` via `.nvmrc`. **Runtime dependencies** (`@anthropic-ai/*`, `ink`, `react`, `yaml`, `zod`, `jiti`, `tar`, `gray-matter`) are left at their existing versions — "latest tools" scopes to the build/test/release toolchain, not runtime libraries whose major bumps could change behaviour.
