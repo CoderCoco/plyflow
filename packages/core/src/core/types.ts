@@ -42,6 +42,16 @@ export interface StepDef {
   step?: string;
   /** Default value returned when the step runs in non-TTY mode (no prompt available). */
   default?: unknown;
+  /** Shell command to execute (the `sh:` step type). Expression-resolved. */
+  sh?: string;
+  /** Parse the command's stdout as JSON into the step output (`sh` step). */
+  json?: boolean;
+  /** Working directory for the `sh` command (expression-resolved). */
+  cwd?: string;
+  /** Environment overrides for the `sh` command (expression-resolved values). */
+  env?: Record<string, string>;
+  /** Declarative result returned for this `sh` step under engine dry-run. */
+  dryRun?: { stdout?: string; stderr?: string; code?: number };
   /** Binding name for the current element (default: 'item'). */
   as?: string;
   /** Expression that produces the element's identity key (default: array index as string). */

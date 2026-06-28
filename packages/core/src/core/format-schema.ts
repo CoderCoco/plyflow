@@ -44,17 +44,24 @@ const stepDef: z.ZodType<any> = z.lazy(() =>
       widget: z.string().optional(),
       step: z.string().optional(),
       default: z.unknown().optional(),
+      sh: z.string().optional(),
+      json: z.boolean().optional(),
+      cwd: z.string().optional(),
+      env: z.record(z.string(), z.string()).optional(),
+      dryRun: z
+        .object({ stdout: z.string().optional(), stderr: z.string().optional(), code: z.number().optional() })
+        .optional(),
     })
     .refine(
       (s) => {
         const r = s as Record<string, unknown>;
-        return ['run', 'uses', 'agent', 'input', 'parallel', 'loop', 'foreach', 'widget', 'step'].filter(
+        return ['run', 'uses', 'agent', 'input', 'parallel', 'loop', 'foreach', 'widget', 'step', 'sh'].filter(
           (k) => r[k] !== undefined,
         ).length === 1;
       },
       {
         message:
-          'a step must have exactly one type key: run | uses | agent | input | parallel | loop | foreach | widget | step',
+          'a step must have exactly one type key: run | uses | agent | input | parallel | loop | foreach | widget | step | sh',
       },
     )
     .superRefine((s, ctx) => {
