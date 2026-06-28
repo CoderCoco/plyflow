@@ -67,4 +67,12 @@ describe('makeShStep', () => {
     expect(exec).not.toHaveBeenCalled();
     expect(res.output).toEqual({ stdout: '', stderr: '', code: 0 });
   });
+
+  it('json:true under dryRun with no declared stdout does not crash (omits json)', async () => {
+    const exec = mkExec(() => ({ stdout: 'x', stderr: '', code: 0 }));
+    const step = makeShStep(exec);
+    const res = await step.run(step.parse({ id: 's', sh: 'x', json: true }), ctx({ dryRun: true }));
+    expect(exec).not.toHaveBeenCalled();
+    expect(res.output).toEqual({ stdout: '', stderr: '', code: 0 });
+  });
 });

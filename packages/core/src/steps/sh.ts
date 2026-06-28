@@ -33,7 +33,7 @@ export function makeShStep(exec: ShellExec = defaultShellExec): StepType<ShCfg> 
           stderr: r.stderr,
           code: r.code,
         };
-        if (cfg.json) output.json = JSON.parse(r.stdout);
+        if (cfg.json && r.stdout.trim() !== '') output.json = JSON.parse(r.stdout);
         return { output };
       };
 
