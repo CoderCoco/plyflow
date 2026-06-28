@@ -1,8 +1,8 @@
 import { dirname } from 'node:path';
 import { createInterface } from 'node:readline/promises';
-import type { ResolvedSource } from '../core/remote/index.js';
-import { RemoteFetchError } from '../core/remote/index.js';
-import { hashDir, isTrusted, recordTrust, trustKey } from '../core/remote/trust.js';
+import type { ResolvedSource } from '@plyflow/core/remote';
+import { RemoteFetchError } from '@plyflow/core/remote';
+import { hashDir, isTrusted, recordTrust, trustKey } from '@plyflow/core/remote/trust';
 
 export interface ConfirmTrustDeps {
   isTty: boolean;

@@ -2,14 +2,11 @@
 import { render } from 'ink';
 import React from 'react';
 import { parseArgs } from './args.js';
-import { loadWorkflow } from '../core/loader.js';
-import { resolveWorkflowSource } from '../core/remote/index.js';
+import { loadWorkflow, runWorkflow, makeProvider, type EngineEvent } from '@plyflow/core';
+import type { UiRequest } from '@plyflow/core';
+import { resolveWorkflowSource } from '@plyflow/core/remote';
 import { ensureTrusted, readlineConfirm } from './trust-prompt.js';
-import { runWorkflow, type EngineEvent } from '../core/engine.js';
-import { makeProvider } from '../providers/factory.js';
-import { LineLogger } from '../tui/logger.js';
-import { App } from '../tui/App.js';
-import type { UiRequest } from '../steps/types.js';
+import { LineLogger, App } from '@plyflow/tui';
 
 function coerceInputs(
   raw: Record<string, string>,

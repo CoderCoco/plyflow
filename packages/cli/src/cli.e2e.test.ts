@@ -25,7 +25,7 @@ describe('plyflow CLI (non-TTY)', () => {
       ].join('\n'),
     );
     // Run via tsx so we execute the TS source without a build step.
-    const { stdout } = await run('npx', ['tsx', 'src/cli/index.ts', 'run', wfPath, '--input', 'n=5'], {
+    const { stdout } = await run('npx', ['tsx', 'src/index.ts', 'run', wfPath, '--input', 'n=5'], {
       cwd: process.cwd(),
       env: { ...process.env },
     });
