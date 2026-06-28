@@ -27,6 +27,8 @@ export interface StepContext {
   baseDir: string;
   /** Whether the process is running in an interactive TTY. */
   isTty: boolean;
+  /** True when the run is in dry-run mode; side-effecting steps must not execute. */
+  dryRun: boolean;
   /** Bare specifiers whose modules are shared with plyflow's own copies (from workflow's package.json plyflow.provided). */
   provided: string[];
   resolve?(value: unknown): unknown;
