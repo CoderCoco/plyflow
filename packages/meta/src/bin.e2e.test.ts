@@ -21,8 +21,8 @@ describe('plyflow meta bin', () => {
       env.NODE_OPTIONS = env.NODE_OPTIONS.replace('--conditions=@plyflow/source', '').trim();
     }
 
-    let stdout = '';
-    let stderr = '';
+    let stdout: string;
+    let stderr: string;
     try {
       const result = await run('node', [BIN_PATH, 'run'], { env });
       stdout = result.stdout;
