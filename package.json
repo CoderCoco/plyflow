@@ -1,44 +1,29 @@
 {
-  "name": "plyflow",
-  "version": "0.3.0",
-  "description": "Run AI agent workflows defined in YAML, with an interactive terminal UI.",
+  "name": "plyflow-monorepo",
+  "version": "0.0.0",
+  "private": true,
   "type": "module",
-  "bin": {
-    "plyflow": "./dist/cli/index.js"
-  },
-  "exports": "./dist/index.js",
-  "engines": {
-    "node": ">=24"
-  },
+  "engines": { "node": ">=24" },
+  "packageManager": "pnpm@11.9.0",
   "scripts": {
-    "build": "tsup",
-    "dev": "tsx src/cli/index.ts",
-    "test": "vitest run",
+    "build": "pnpm -r build",
+    "test": "pnpm -r test && vitest run --config vitest.examples.config.ts",
     "test:watch": "vitest",
-    "lint": "eslint ."
-  },
-  "dependencies": {
-    "@anthropic-ai/claude-agent-sdk": "^0.3.183",
-    "@anthropic-ai/sdk": "^0.105.0",
-    "gray-matter": "^4.0.3",
-    "ink": "^7.1.0",
-    "jiti": "^2.7.0",
-    "react": "^19.2.0",
-    "tar": "^7.5.16",
-    "yaml": "^2.9.0",
-    "zod": "^4.4.3"
+    "lint": "pnpm -r lint",
+    "dev": "tsx packages/cli/src/index.ts",
+    "changeset": "changeset",
+    "version-packages": "changeset version",
+    "release": "pnpm -r build && changeset publish"
   },
   "devDependencies": {
-    "@eslint/js": "^10.0.0",
-    "@types/node": "^24.0.0",
-    "@types/react": "^19.2.0",
-    "eslint": "^10.0.0",
-    "ink-testing-library": "^4.0.0",
-    "react-devtools-core": "^6.1.2",
-    "tsup": "^8.5.1",
+    "@changesets/cli": "^2.31.0",
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^26.0.1",
+    "eslint": "^10.6.0",
+    "tsdown": "^0.22.3",
     "tsx": "^4.22.4",
-    "typescript": "^6.0.0",
-    "typescript-eslint": "^8.61.0",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.62.0",
     "vitest": "^4.1.9"
   }
 }
