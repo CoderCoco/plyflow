@@ -93,7 +93,7 @@ packages:
 
 - [ ] **Step 2: Create `.npmrc`**
 
-```
+```text
 link-workspace-packages=true
 prefer-workspace-packages=true
 ```
