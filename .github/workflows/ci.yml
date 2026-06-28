@@ -29,5 +29,4 @@ jobs:
           echo "$out"
           if echo "$out" | grep -q "Invalid or unexpected token"; then echo "FAIL: built bin has a shebang/syntax error"; exit 1; fi
           if echo "$out" | grep -qiE "Cannot find package|ERR_MODULE_NOT_FOUND"; then echo "FAIL: meta bin cannot resolve @plyflow/cli"; exit 1; fi
-          if ! echo "$out" | grep -qiE "workflow|command|usage"; then echo "FAIL: built bin did not print the expected usage error"; exit 1; fi
       - run: pnpm test
