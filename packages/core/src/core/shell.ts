@@ -35,7 +35,7 @@ export const defaultShellExec: ShellExec = (command, opts = {}) =>
       stderr += d.toString();
     });
     child.on('error', reject);
-    child.on('close', (code) => {
-      resolve({ stdout, stderr, code: code ?? 0 });
+    child.on('close', (code, signal) => {
+      resolve({ stdout, stderr, code: code ?? (signal ? 1 : 0) });
     });
   });
