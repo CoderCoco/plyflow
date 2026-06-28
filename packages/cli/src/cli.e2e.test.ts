@@ -27,7 +27,10 @@ describe('plyflow CLI (non-TTY)', () => {
     // Run via tsx so we execute the TS source without a build step.
     // NODE_OPTIONS passes the @plyflow/source condition to the subprocess so
     // workspace package exports resolve to src/ rather than dist/.
-    const nodeOptions = `${process.env.NODE_OPTIONS ?? ''} --conditions=@plyflow/source`.trim();
+    const existingNodeOptions = process.env.NODE_OPTIONS ?? '';
+    const nodeOptions = existingNodeOptions.includes('--conditions=@plyflow/source')
+      ? existingNodeOptions
+      : `${existingNodeOptions} --conditions=@plyflow/source`.trim();
     const { stdout } = await run('npx', ['tsx', 'src/index.ts', 'run', wfPath, '--input', 'n=5'], {
       cwd: process.cwd(),
       env: { ...process.env, NODE_OPTIONS: nodeOptions },
