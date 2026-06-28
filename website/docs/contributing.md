@@ -32,14 +32,14 @@ pnpm -r build
 | Script | Description |
 |--------|-------------|
 | `pnpm -r build` | Compile TypeScript with tsdown in all packages |
-| `npm run dev -- run <file>` | Run the CLI directly via tsx (no build step, from packages/cli) |
+| `pnpm dev -- run <file>` | Run the CLI directly via tsx (no build step, from packages/cli) |
 | `pnpm test` | Run the full test suite with [Vitest](https://vitest.dev/) |
-| `npm run test:watch` | Watch mode for tests (run from a package directory) |
+| `pnpm test:watch` | Watch mode for tests (run from a package directory) |
 | `pnpm -r lint` | Lint with ESLint + typescript-eslint |
 
 ## Project layout
 
-```
+```text
 packages/
   cli/          CLI entry point and command parsing (packages/cli/src/)
   core/         Engine, loader, journal, expression evaluator, exec utilities (packages/core/src/)
