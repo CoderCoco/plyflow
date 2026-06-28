@@ -1,4 +1,4 @@
-import type { EngineEvent } from '../core/engine.js';
+import type { EngineEvent } from '@plyflow/core';
 
 export class LineLogger {
   constructor(private readonly write: (line: string) => void) {}

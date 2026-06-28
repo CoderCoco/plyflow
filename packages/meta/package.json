@@ -1,0 +1,16 @@
+{
+  "name": "plyflow",
+  "version": "0.3.0",
+  "description": "Run AI agent workflows defined in YAML, with an interactive terminal UI.",
+  "type": "module",
+  "engines": { "node": ">=24" },
+  "publishConfig": { "access": "public" },
+  "bin": { "plyflow": "./bin.js" },
+  "exports": { ".": { "@plyflow/source": "./src/index.ts", "default": "./dist/index.js" } },
+  "files": ["dist", "bin.js"],
+  "scripts": { "build": "tsdown", "test": "vitest run", "lint": "eslint src" },
+  "dependencies": {
+    "@plyflow/core": "workspace:*",
+    "@plyflow/cli": "workspace:*"
+  }
+}

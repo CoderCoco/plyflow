@@ -3,9 +3,9 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { ensureTrusted } from './trust-prompt.js';
-import { hashDir, recordTrust, trustKey } from '../core/remote/trust.js';
-import { RemoteFetchError } from '../core/remote/index.js';
-import type { ResolvedSource } from '../core/remote/index.js';
+import { hashDir, recordTrust, trustKey } from '@plyflow/core/remote/trust';
+import { RemoteFetchError } from '@plyflow/core/remote';
+import type { ResolvedSource } from '@plyflow/core/remote';
 
 let dir: string;
 let storeDir: string;

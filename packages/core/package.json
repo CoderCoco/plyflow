@@ -1,0 +1,29 @@
+{
+  "name": "@plyflow/core",
+  "version": "0.3.0",
+  "description": "plyflow workflow engine (loader, scheduler, steps, providers).",
+  "type": "module",
+  "engines": { "node": ">=24" },
+  "publishConfig": { "access": "public" },
+  "exports": {
+    ".": { "@plyflow/source": "./src/index.ts", "default": "./dist/index.js" },
+    "./module-loader": { "@plyflow/source": "./src/core/module-loader.ts", "default": "./dist/module-loader.js" },
+    "./remote": { "@plyflow/source": "./src/core/remote/index.ts", "default": "./dist/remote.js" },
+    "./remote/trust": { "@plyflow/source": "./src/core/remote/trust.ts", "default": "./dist/remote/trust.js" }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsdown",
+    "test": "vitest run",
+    "lint": "eslint src"
+  },
+  "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "^0.3.183",
+    "@anthropic-ai/sdk": "^0.105.0",
+    "gray-matter": "^4.0.3",
+    "jiti": "^2.7.0",
+    "tar": "^7.5.16",
+    "yaml": "^2.9.0",
+    "zod": "^4.4.3"
+  }
+}

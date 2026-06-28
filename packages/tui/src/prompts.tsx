@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Box, Text, useInput } from 'ink';
-import type { PromptRequest } from '../steps/types.js';
+import type { PromptRequest } from '@plyflow/core';
 
 interface PromptProps {
   request: PromptRequest;

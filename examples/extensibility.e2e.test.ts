@@ -17,9 +17,7 @@
 import { describe, it, expect } from 'vitest';
 import { fileURLToPath } from 'node:url';
 import { join, dirname } from 'node:path';
-import { loadWorkflow } from '../src/core/loader.js';
-import { runWorkflow } from '../src/core/engine.js';
-import { FakeProvider } from '../src/providers/fake.js';
+import { loadWorkflow, runWorkflow, FakeProvider } from '@plyflow/core';
 
 const examplesDir = dirname(fileURLToPath(import.meta.url));
 const pluginWfPath = join(examplesDir, 'plugins', 'transform.yaml');

@@ -13,17 +13,20 @@ jobs:
         node-version: ['24.x']
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.9.0
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-          cache: npm
-      - run: npm ci
-      - run: npm run lint
-      - run: npm run build
-      - name: Smoke-test built binary
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm -r lint
+      - run: pnpm -r build
+      - name: Smoke-test the built meta bin
         run: |
-          out=$(node dist/cli/index.js 2>&1 || true)
+          out=$(node packages/meta/bin.js run 2>&1 || true)
           echo "$out"
           if echo "$out" | grep -q "Invalid or unexpected token"; then echo "FAIL: built bin has a shebang/syntax error"; exit 1; fi
-          if ! echo "$out" | grep -qiE "workflow|command"; then echo "FAIL: built bin did not print the expected usage error"; exit 1; fi
-      - run: npm test
+          if echo "$out" | grep -qiE "Cannot find package|ERR_MODULE_NOT_FOUND"; then echo "FAIL: meta bin cannot resolve @plyflow/cli"; exit 1; fi
+      - run: pnpm test

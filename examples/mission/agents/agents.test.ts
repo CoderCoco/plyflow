@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { fileURLToPath } from 'node:url';
-import { loadAgent } from '../../../src/core/loader.js';
+import { loadAgent } from '@plyflow/core';
 
 const agent = (name: string) =>
   fileURLToPath(new URL(`./${name}`, import.meta.url));
