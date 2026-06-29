@@ -1,9 +1,19 @@
 import type { AIProvider, AICompleteRequest, AIResult } from '@plyflow/core';
 
+const AIRESULT_KEYS = new Set(['text', 'structured', 'usage']);
+
+function isAIResult(value: unknown): value is AIResult {
+  if (value === null || typeof value !== 'object') return false;
+  const keys = Object.keys(value);
+  return (
+    keys.length > 0 &&
+    keys.every((k) => AIRESULT_KEYS.has(k)) &&
+    ('text' in value || 'structured' in value || 'usage' in value)
+  );
+}
+
 function normalize(value: unknown): AIResult {
-  if (value !== null && typeof value === 'object' && ('text' in value || 'structured' in value || 'usage' in value)) {
-    return value as AIResult;
-  }
+  if (isAIResult(value)) return value;
   if (typeof value === 'string') return { text: value };
   return { structured: value };
 }
