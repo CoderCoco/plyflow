@@ -19,6 +19,7 @@ A step has exactly one **type key** that determines what it does. The type key a
 | [`foreach`](./foreach.md) | Dynamic fan-out over a runtime array |
 | [`widget`](./widget.md) | Custom Ink/React terminal UI component |
 | [`sh`](./sh.md) | Run a shell command and capture output |
+| [`use`](./use.md) | Run another workflow file as a sub-workflow |
 | [`step`](./plugin-step.md) | Custom plugin step type |
 
 ## Choosing a step type
@@ -32,6 +33,7 @@ Do you need a custom TUI?           → widget:
 Do you need to fan out over items?  → foreach:
 Do you need to retry until done?    → loop:
 Do you need a custom step type?     → step:
+Do you need to call a sub-workflow? → use:
 ```
 
 ## Step execution model
