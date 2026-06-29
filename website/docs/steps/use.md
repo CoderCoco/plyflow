@@ -148,7 +148,7 @@ phases:
 
 The engine tracks the call chain of sub-workflow paths. If a workflow (directly or transitively) calls itself, the engine throws:
 
-```
+```text
 sub-workflow cycle detected: /path/to/loop.yaml is already in the call chain
 ```
 
