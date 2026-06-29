@@ -4,6 +4,10 @@ inputs:
   repo: { type: string, required: false }
   models: { type: string, required: false }   # "role=value,..." parsed by resolve-models
 
+plugins:
+  - '@plyflow/git'
+  - '@plyflow/github'
+
 phases:
   - name: Setup
     steps:
@@ -14,14 +18,14 @@ phases:
           fableAvailable: true
 
       - id: issue
-        uses: ./lib/gh-issue.ts
+        step: github.issue
         with:
-          issue: "${{ inputs.issue }}"
+          number: "${{ inputs.issue }}"
           repo: "${{ inputs.repo }}"
 
       - id: worktree
         needs: [issue]
-        uses: ./lib/git-worktree.ts
+        step: git.worktree
         with:
           issue: "${{ inputs.issue }}"
           slug: "${{ steps.issue.output.title }}"
@@ -33,7 +37,7 @@ phases:
         agent: ./agents/flight-director.md
         model: "${{ steps.models.output.director }}"
         params:
-          cwd: "${{ steps.worktree.output.worktree_path }}"
+          cwd: "${{ steps.worktree.output.path }}"
           allowedTools: ["Read", "Grep", "Glob", "Bash"]
         prompt: "Issue #${{ inputs.issue }}: ${{ steps.issue.output.title }}\n\n${{ steps.issue.output.body }}\n\nProduce the flight plan."
         output: ./schemas/Plan.ts
@@ -66,7 +70,7 @@ phases:
                 agent: ./agents/astronaut.md
                 model: "${{ steps.models.output.astronaut }}"
                 params:
-                  cwd: "${{ steps.worktree.output.worktree_path }}"
+                  cwd: "${{ steps.worktree.output.path }}"
                 prompt: |
                   Task: ${{ task.name }} — ${{ task.title }}
                   Files: ${{ task.files }}
@@ -80,7 +84,7 @@ phases:
                 agent: ./agents/flight-controller.md
                 model: "${{ steps.models.output.controller }}"
                 params:
-                  cwd: "${{ steps.worktree.output.worktree_path }}"
+                  cwd: "${{ steps.worktree.output.path }}"
                   allowedTools: ["Read", "Grep", "Glob", "Bash"]
                 prompt: |
                   Task: ${{ task.name }} — ${{ task.title }}
@@ -91,9 +95,9 @@ phases:
           - id: commit
             needs: [attempt]
             if: "${{ steps.attempt.output.verify.verdict == 'PASS' }}"
-            uses: ./lib/git-commit.ts
+            step: git.commit
             with:
-              worktree_path: "${{ steps.worktree.output.worktree_path }}"
+              path: "${{ steps.worktree.output.path }}"
               message: "feat(${{ task.name }}): ${{ task.title }}\n\nRefs #${{ inputs.issue }}"
 
   - name: Review
@@ -108,7 +112,7 @@ phases:
             agent: ./agents/scout.md
             model: "${{ steps.models.output.utility }}"
             params:
-              cwd: "${{ steps.worktree.output.worktree_path }}"
+              cwd: "${{ steps.worktree.output.path }}"
               allowedTools: ["Read", "Grep", "Glob", "Bash"]
             prompt: |
               Scan the branch diff, identify which language buckets have changed files,
@@ -126,7 +130,7 @@ phases:
                 agent: ./agents/systems-inspector.md
                 model: "${{ steps.models.output.inspector }}"
                 params:
-                  cwd: "${{ steps.worktree.output.worktree_path }}"
+                  cwd: "${{ steps.worktree.output.path }}"
                   allowedTools: ["Read", "Grep", "Glob", "Bash"]
                 prompt: |
                   Bucket: ${{ bucket }}
@@ -160,7 +164,7 @@ phases:
                 agent: ./agents/astronaut.md
                 model: "${{ steps.models.output.astronaut }}"
                 params:
-                  cwd: "${{ steps.worktree.output.worktree_path }}"
+                  cwd: "${{ steps.worktree.output.path }}"
                 prompt: |
                   Fix the following finding:
                   File: ${{ finding.file }}
@@ -173,7 +177,7 @@ phases:
                 agent: ./agents/flight-controller.md
                 model: "${{ steps.models.output.controller }}"
                 params:
-                  cwd: "${{ steps.worktree.output.worktree_path }}"
+                  cwd: "${{ steps.worktree.output.path }}"
                   allowedTools: ["Read", "Grep", "Glob", "Bash"]
                 prompt: |
                   Verify the fix for: ${{ finding.summary }}
@@ -184,26 +188,26 @@ phases:
               - id: commit-fix
                 needs: [verify-fix]
                 if: "${{ steps['verify-fix'].output.verdict == 'PASS' }}"
-                uses: ./lib/git-commit.ts
+                step: git.commit
                 with:
-                  worktree_path: "${{ steps.worktree.output.worktree_path }}"
+                  path: "${{ steps.worktree.output.path }}"
                   message: "fix: ${{ finding.summary }}\n\nRefs #${{ inputs.issue }}"
 
   - name: Docking
     steps:
       - id: push
         # worktree is from Setup — use the real branch it created, not the director's guess
-        uses: ./lib/git-push.ts
+        step: git.push
         with:
-          worktree_path: "${{ steps.worktree.output.worktree_path }}"
+          path: "${{ steps.worktree.output.path }}"
           branch: "${{ steps.worktree.output.branch }}"
 
       - id: pr
         needs: [push]
         # plan, worktree, models are from prior phases (inherited — no needs required)
-        uses: ./lib/gh-pr.ts
+        step: github.pr
         with:
           repo: "${{ inputs.repo }}"
-          branch: "${{ steps.worktree.output.branch }}"
+          head: "${{ steps.worktree.output.branch }}"
           title: "${{ steps.plan.output.issue_title }}"
           body: "## Summary\n\nImplements #${{ inputs.issue }}: ${{ steps.plan.output.issue_title }}\n\nCloses #${{ inputs.issue }}"
