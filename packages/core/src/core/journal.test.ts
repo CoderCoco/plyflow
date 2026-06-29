@@ -39,6 +39,12 @@ describe('hashStep', () => {
     const changed = { ...base, json: true };
     expect(hashStep(base)).not.toBe(hashStep(changed));
   });
+
+  it('produces different hashes when use: changes (regression: use: field must be included)', () => {
+    const base = { id: 'sub', type: 'use', inputs: {}, with: {}, use: './child.yaml' };
+    const changed = { ...base, use: './other.yaml' };
+    expect(hashStep(base)).not.toBe(hashStep(changed));
+  });
 });
 
 describe('Journal', () => {
