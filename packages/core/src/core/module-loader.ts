@@ -77,13 +77,14 @@ async function tryImportProvided(specifier: string): Promise<unknown | undefined
  * population happens once before the first load.
  */
 function isRelative(p: string): boolean {
+  if (p.startsWith('./') || p.startsWith('../')) return true;
+  // Only treat extension-bearing strings as local files when there is no path
+  // separator — a slash means it's a package subpath like `yaml/dist/index.js`
+  // or `@scope/pkg/plugin.js` that must resolve from node_modules.
+  const bare = !p.includes('/');
   return (
-    p.startsWith('./') ||
-    p.startsWith('../') ||
-    p.endsWith('.ts') ||
-    p.endsWith('.js') ||
-    p.endsWith('.tsx') ||
-    p.endsWith('.jsx')
+    bare &&
+    (p.endsWith('.ts') || p.endsWith('.js') || p.endsWith('.tsx') || p.endsWith('.jsx'))
   );
 }
 

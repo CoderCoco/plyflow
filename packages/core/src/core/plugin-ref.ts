@@ -11,13 +11,14 @@ import { isAbsolute, resolve as resolvePath } from 'node:path';
  */
 export function resolvePluginRef(dir: string, ref: string): string {
   if (isAbsolute(ref)) return ref;
+  // Only treat extension-bearing strings as local files when there is no path
+  // separator — a slash means it's a package subpath like `yaml/dist/index.js`
+  // or `@scope/pkg/plugin.js` that must resolve from node_modules.
+  const bare = !ref.includes('/');
   if (
     ref.startsWith('./') ||
     ref.startsWith('../') ||
-    ref.endsWith('.ts') ||
-    ref.endsWith('.js') ||
-    ref.endsWith('.tsx') ||
-    ref.endsWith('.jsx')
+    (bare && (ref.endsWith('.ts') || ref.endsWith('.js') || ref.endsWith('.tsx') || ref.endsWith('.jsx')))
   ) {
     return resolvePath(dir, ref);
   }
