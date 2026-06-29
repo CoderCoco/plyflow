@@ -19,7 +19,7 @@ describe('github.issue', () => {
     const exec = mockExec({
       'gh issue view': { stdout: JSON.stringify({ number: 12, title: 'A bug', body: 'details' }) },
     });
-    const traced = async (cmd: string) => { calls.push(cmd); return exec(cmd); };
+    const traced = async (cmd: string | string[]) => { calls.push(Array.isArray(cmd) ? cmd.join(' ') : cmd); return exec(cmd); };
     const step = makeGithubIssueStep(traced);
     const res = await step.run(step.parse({ id: 'i', step: 'github.issue' }), ctx({ with: { number: 12 } }));
     expect(res.output).toEqual({ number: 12, title: 'A bug', body: 'details' });
@@ -29,7 +29,7 @@ describe('github.issue', () => {
   it('appends --repo when given', async () => {
     const calls: string[] = [];
     const exec = mockExec({ 'gh issue view': { stdout: JSON.stringify({ number: 1, title: 't', body: 'b' }) } });
-    const traced = async (cmd: string) => { calls.push(cmd); return exec(cmd); };
+    const traced = async (cmd: string | string[]) => { calls.push(Array.isArray(cmd) ? cmd.join(' ') : cmd); return exec(cmd); };
     const step = makeGithubIssueStep(traced);
     await step.run(step.parse({ id: 'i', step: 'github.issue' }), ctx({ with: { number: 1, repo: 'owner/repo' } }));
     expect(calls[0]).toContain('--repo owner/repo');

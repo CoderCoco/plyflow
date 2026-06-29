@@ -1,6 +1,5 @@
 import { defaultShellExec, type ShellExec, type StepType, type StepContext, type StepResult } from '@plyflow/core';
 import { z } from 'zod';
-import { shJoin } from './lib/sh.js';
 import { PrOutput } from './schemas.js';
 
 const Input = z.object({
@@ -26,7 +25,7 @@ export function makeGithubPrStep(exec: ShellExec = defaultShellExec): StepType {
 
       const listArgs = ['gh', 'pr', 'list', '--head', head, '--json', 'number,url'];
       if (repo) listArgs.push('--repo', repo);
-      const list = await exec(shJoin(listArgs));
+      const list = await exec(listArgs);
       if (list.code !== 0) throw new Error(`gh pr list failed (code ${list.code}): ${list.stderr.trim()}`);
 
       const existing = JSON.parse(list.stdout) as Array<{ number: number; url: string }>;
@@ -37,7 +36,7 @@ export function makeGithubPrStep(exec: ShellExec = defaultShellExec): StepType {
 
       const createArgs = ['gh', 'pr', 'create', '--title', title, '--body', body, '--base', base, '--head', head];
       if (repo) createArgs.push('--repo', repo);
-      const create = await exec(shJoin(createArgs));
+      const create = await exec(createArgs);
       if (create.code !== 0) throw new Error(`gh pr create failed (code ${create.code}): ${create.stderr.trim()}`);
 
       const url = create.stdout.trim();

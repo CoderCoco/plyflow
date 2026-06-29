@@ -17,17 +17,17 @@ describe('github.review', () => {
   it('posts a comment', async () => {
     const calls: string[] = [];
     const exec = mockExec({ 'gh pr comment': { stdout: '' } });
-    const traced = async (cmd: string) => { calls.push(cmd); return exec(cmd); };
+    const traced = async (cmd: string | string[]) => { calls.push(Array.isArray(cmd) ? cmd.join(' ') : cmd); return exec(cmd); };
     const step = makeGithubReviewStep(traced);
     const res = await step.run(step.parse({ id: 'r', step: 'github.review' }), ctx({ with: { pr: 5, comment: 'looks good' } }));
     expect(res.output).toEqual({ action: 'comment', body: 'looks good' });
-    expect(calls[0]).toBe("gh pr comment 5 --body 'looks good'");
+    expect(calls[0]).toBe('gh pr comment 5 --body looks good');
   });
 
   it('re-requests reviewers', async () => {
     const calls: string[] = [];
     const exec = mockExec({ 'gh pr edit': { stdout: '' } });
-    const traced = async (cmd: string) => { calls.push(cmd); return exec(cmd); };
+    const traced = async (cmd: string | string[]) => { calls.push(Array.isArray(cmd) ? cmd.join(' ') : cmd); return exec(cmd); };
     const step = makeGithubReviewStep(traced);
     const res = await step.run(step.parse({ id: 'r', step: 'github.review' }), ctx({ with: { pr: 5, reRequest: ['alice', 'bob'] } }));
     expect(res.output).toEqual({ action: 'reRequest', reviewers: ['alice', 'bob'] });
@@ -38,7 +38,7 @@ describe('github.review', () => {
   it('resolves a review thread via graphql', async () => {
     const calls: string[] = [];
     const exec = mockExec({ 'gh api graphql': { stdout: '' } });
-    const traced = async (cmd: string) => { calls.push(cmd); return exec(cmd); };
+    const traced = async (cmd: string | string[]) => { calls.push(Array.isArray(cmd) ? cmd.join(' ') : cmd); return exec(cmd); };
     const step = makeGithubReviewStep(traced);
     const res = await step.run(step.parse({ id: 'r', step: 'github.review' }), ctx({ with: { pr: 5, resolveThread: 'PRT_123' } }));
     expect(res.output).toEqual({ action: 'resolveThread', resolved: true });

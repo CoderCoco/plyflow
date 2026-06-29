@@ -1,13 +1,12 @@
 import { defaultShellExec, type ShellExec, type StepType, type StepContext, type StepResult } from '@plyflow/core';
 import { z } from 'zod';
-import { shJoin } from './lib/sh.js';
 import { ReviewOutput } from './schemas.js';
 
 const Input = z.object({
   pr: z.coerce.number().int(),
   repo: z.string().optional(),
   comment: z.string().optional(),
-  reRequest: z.array(z.string()).optional(),
+  reRequest: z.array(z.string()).min(1).optional(),
   resolveThread: z.string().optional(),
 });
 
@@ -33,7 +32,7 @@ export function makeGithubReviewStep(exec: ShellExec = defaultShellExec): StepTy
       }
 
       if (comment !== undefined) {
-        const r = await exec(shJoin(['gh', 'pr', 'comment', String(pr), '--body', comment, ...repoArgs]));
+        const r = await exec(['gh', 'pr', 'comment', String(pr), '--body', comment, ...repoArgs]);
         if (r.code !== 0) throw new Error(`gh pr comment failed (code ${r.code}): ${r.stderr.trim()}`);
         return { output: ReviewOutput.parse({ action: 'comment', body: comment }) };
       }
@@ -41,12 +40,12 @@ export function makeGithubReviewStep(exec: ShellExec = defaultShellExec): StepTy
       if (reRequest !== undefined) {
         const args = ['gh', 'pr', 'edit', String(pr), ...repoArgs];
         for (const reviewer of reRequest) args.push('--add-reviewer', reviewer);
-        const r = await exec(shJoin(args));
+        const r = await exec(args);
         if (r.code !== 0) throw new Error(`gh pr edit failed (code ${r.code}): ${r.stderr.trim()}`);
         return { output: ReviewOutput.parse({ action: 'reRequest', reviewers: reRequest }) };
       }
 
-      const r = await exec(shJoin(['gh', 'api', 'graphql', '-f', 'query=mutation($id:ID!){resolveReviewThread(input:{threadId:$id}){thread{id isResolved}}}', '-f', `id=${resolveThread!}`]));
+      const r = await exec(['gh', 'api', 'graphql', '-f', 'query=mutation($id:ID!){resolveReviewThread(input:{threadId:$id}){thread{id isResolved}}}', '-f', `id=${resolveThread!}`]);
       if (r.code !== 0) throw new Error(`gh api resolveReviewThread failed (code ${r.code}): ${r.stderr.trim()}`);
       return { output: ReviewOutput.parse({ action: 'resolveThread', resolved: true }) };
     },

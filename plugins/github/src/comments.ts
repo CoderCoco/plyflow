@@ -1,12 +1,11 @@
 import { defaultShellExec, type ShellExec, type StepType, type StepContext, type StepResult } from '@plyflow/core';
 import { z } from 'zod';
-import { shJoin } from './lib/sh.js';
 import { CommentsOutput } from './schemas.js';
 
 const Input = z.object({
   pr: z.coerce.number().int(),
   repo: z.string().optional(),
-  since: z.string().optional(),
+  since: z.string().datetime().optional(),
 });
 
 // Pinned so output shape is stable across gh versions.
@@ -27,7 +26,7 @@ export function makeGithubCommentsStep(exec: ShellExec = defaultShellExec): Step
 
       const args = ['gh', 'pr', 'view', String(pr), '--json', PR_FIELDS];
       if (repo) args.push('--repo', repo);
-      const r = await exec(shJoin(args));
+      const r = await exec(args);
       if (r.code !== 0) throw new Error(`gh pr view failed (code ${r.code}): ${r.stderr.trim()}`);
 
       const data = JSON.parse(r.stdout) as Record<string, unknown>;

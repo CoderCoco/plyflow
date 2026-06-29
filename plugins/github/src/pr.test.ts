@@ -29,12 +29,12 @@ describe('github.pr', () => {
       'gh pr list': { stdout: '[]' },
       'gh pr create': { stdout: 'https://github.com/o/r/pull/43\n' },
     });
-    const traced = async (cmd: string) => { calls.push(cmd); return exec(cmd); };
+    const traced = async (cmd: string | string[]) => { calls.push(Array.isArray(cmd) ? cmd.join(' ') : cmd); return exec(cmd); };
     const step = makeGithubPrStep(traced);
     const res = await step.run(step.parse({ id: 'p', step: 'github.pr' }), ctx({ with: withInput }));
     expect(res.output).toEqual({ number: 43, url: 'https://github.com/o/r/pull/43', created: true });
     const create = calls.find((c) => c.includes('gh pr create'))!;
-    expect(create).toContain("--title 'My PR'");
+    expect(create).toContain('--title My PR');
     expect(create).toContain('--head feature-x');
     expect(create).toContain('--base main');
   });
