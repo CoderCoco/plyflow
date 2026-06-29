@@ -10,6 +10,7 @@ import { makeParallelStep } from '../steps/parallel.js';
 import { makeLoopStep } from '../steps/loop.js';
 import { makeForeachStep } from '../steps/foreach.js';
 import { makeShStep } from '../steps/sh.js';
+import { makeUseStep } from '../steps/use.js';
 import type { UiRequest } from '../steps/types.js';
 import type { AIProvider } from '../providers/types.js';
 import { createRootScope, runSteps } from './exec.js';
@@ -53,6 +54,7 @@ export function buildDefaultRegistry(): StepRegistry {
   reg.register(makeLoopStep());
   reg.register(makeForeachStep());
   reg.register(makeShStep());
+  reg.register(makeUseStep(runWorkflow));
   return reg;
 }
 
