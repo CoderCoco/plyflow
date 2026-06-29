@@ -77,7 +77,14 @@ async function tryImportProvided(specifier: string): Promise<unknown | undefined
  * population happens once before the first load.
  */
 function isRelative(p: string): boolean {
-  return p.startsWith('./') || p.startsWith('../');
+  return (
+    p.startsWith('./') ||
+    p.startsWith('../') ||
+    p.endsWith('.ts') ||
+    p.endsWith('.js') ||
+    p.endsWith('.tsx') ||
+    p.endsWith('.jsx')
+  );
 }
 
 export function createLoader(opts: LoaderOptions): ModuleLoader {

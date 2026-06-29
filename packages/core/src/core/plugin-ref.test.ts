@@ -19,4 +19,8 @@ describe('resolvePluginRef', () => {
   it('leaves an absolute path unchanged', () => {
     expect(resolvePluginRef('/wf', '/abs/p.ts')).toBe('/abs/p.ts');
   });
+  it('treats a bare filename with a .ts/.js extension as a local file', () => {
+    expect(resolvePluginRef('/wf', 'echo-plugin.ts')).toBe(resolve('/wf', 'echo-plugin.ts'));
+    expect(resolvePluginRef('/wf', 'p.js')).toBe(resolve('/wf', 'p.js'));
+  });
 });

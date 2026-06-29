@@ -171,9 +171,9 @@ describe('B3: plugin loading via runWorkflow', () => {
     expect(res.outputs['e']).toBe('dedup');
   });
 
-  it('FIX3: deduplicates when env and wf both declare ./relative (same absolute path, declared twice)', async () => {
-    // env.plugins = ['./echo-plugin.ts'] (from package.json)
-    // wf.plugins  = ['./echo-plugin.ts'] (from YAML)
+  it('FIX3: deduplicates when package.json uses bare filename and YAML uses ./relative (cross-form, same absolute path)', async () => {
+    // env.plugins = ['echo-plugin.ts']   (from package.json, bare filename)
+    // wf.plugins  = ['./echo-plugin.ts'] (from YAML, relative form)
     // Both resolve to the same absolute path → loaded ONCE → no ambiguous error.
     await writeFile(
       join(dir, 'echo-plugin.ts'),
@@ -189,11 +189,11 @@ describe('B3: plugin loading via runWorkflow', () => {
       ].join('\n'),
     );
 
-    // package.json declares plugin WITH leading './' (canonical form)
+    // package.json declares plugin WITHOUT leading './' (bare filename form)
     await writeFile(
       join(dir, 'package.json'),
       JSON.stringify({
-        plyflow: { plugins: ['./echo-plugin.ts'] },
+        plyflow: { plugins: ['echo-plugin.ts'] },
       }),
     );
 
