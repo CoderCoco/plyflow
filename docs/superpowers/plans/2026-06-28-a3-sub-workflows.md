@@ -23,7 +23,7 @@
 
 ## File Structure
 
-```
+```text
 packages/core/src/
   core/
     types.ts            # MODIFY: WorkflowFile.outputs?; StepDef.use?
