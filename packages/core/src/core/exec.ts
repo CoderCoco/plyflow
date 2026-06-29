@@ -22,6 +22,7 @@ export interface ExecScope {
   dirty: Set<string>;
   isTty: boolean;
   dryRun: boolean;
+  useChain: string[];
   provided: string[];
   loadModule(path: string): Promise<unknown>;
   emit(e: EngineEvent): void;
@@ -44,6 +45,7 @@ export interface RootScopeOptions {
   dirty: Set<string>;
   isTty: boolean;
   dryRun?: boolean;
+  useChain?: string[];
   provided?: string[];
   loadModule(path: string): Promise<unknown>;
   emit(e: EngineEvent): void;
@@ -78,6 +80,7 @@ function makeRunChildren(
       dirty: parentScope.dirty,
       isTty: parentScope.isTty,
       dryRun: parentScope.dryRun,
+      useChain: parentScope.useChain,
       provided: parentScope.provided,
       loadModule: parentScope.loadModule,
       emit: parentScope.emit,
@@ -105,6 +108,7 @@ export function createRootScope(opts: RootScopeOptions): ExecScope {
     dirty: opts.dirty,
     isTty: opts.isTty,
     dryRun: opts.dryRun ?? false,
+    useChain: opts.useChain ?? [],
     provided: opts.provided ?? DEFAULT_PROVIDED,
     loadModule: opts.loadModule,
     emit: opts.emit,
@@ -211,6 +215,7 @@ export async function runSteps(
       baseDir: scope.baseDir,
       isTty: scope.isTty,
       dryRun: scope.dryRun,
+      useChain: scope.useChain,
       provided: scope.provided,
       loadModule: scope.loadModule,
       resolve: (value: unknown) => resolveExpr(value, exprCtx()),

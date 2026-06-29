@@ -29,6 +29,8 @@ export interface StepContext {
   isTty: boolean;
   /** True when the run is in dry-run mode; side-effecting steps must not execute. */
   dryRun: boolean;
+  /** Absolute paths of ancestor sub-workflows in the current call chain (cycle guard). */
+  useChain?: string[];
   /** Bare specifiers whose modules are shared with plyflow's own copies (from workflow's package.json plyflow.provided). */
   provided: string[];
   resolve?(value: unknown): unknown;

@@ -37,6 +37,8 @@ export interface RunOptions {
   isTty?: boolean;
   /** Run side-effecting steps (sh, …) in dry-run mode. Defaults to false. */
   dryRun?: boolean;
+  /** Internal: ancestor sub-workflow paths for cycle detection. */
+  useChain?: string[];
   /** Injectable exec for running npm commands in prepareEnv; defaults to real npm. Useful for tests. */
   exec?: Exec;
 }
@@ -141,6 +143,7 @@ export async function runWorkflow(
         dirty,
         isTty,
         dryRun: opts.dryRun ?? false,
+        useChain: opts.useChain ?? [],
         provided: env.provided,
         loadModule: (path) => loader.import(path),
         emit,
