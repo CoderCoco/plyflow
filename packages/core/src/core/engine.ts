@@ -1,5 +1,6 @@
 import { loadWorkflow } from './loader.js';
 import { Journal } from './journal.js';
+import { resolve as resolveExpr } from './expression.js';
 import { StepRegistry } from '../steps/registry.js';
 import { runStep } from '../steps/run.js';
 import { agentStep } from '../steps/agent.js';
@@ -60,7 +61,7 @@ function randomRunId(): string {
 export async function runWorkflow(
   workflowPath: string,
   opts: RunOptions,
-): Promise<{ runId: string; outputs: Record<string, unknown> }> {
+): Promise<{ runId: string; outputs: Record<string, unknown>; declaredOutputs: Record<string, unknown> }> {
   const emit = (e: EngineEvent) => opts.onEvent?.(e);
 
   // Prepare the workflow environment: resolve dir, provided modules, plugins.
@@ -113,6 +114,7 @@ export async function runWorkflow(
   // Shared outputs and dirty set across all phases (cross-phase step references).
   const allOutputs: Record<string, unknown> = {};
   const dirty = new Set<string>();
+  let declaredOutputs: Record<string, unknown> = {};
 
   const prompt = opts.prompt ?? ((stepId: string) => Promise.reject(new Error(`no prompt handler provided for step "${stepId}"`)));
   const isTty = opts.isTty !== undefined ? opts.isTty : !!process.stdout.isTTY;
@@ -160,10 +162,21 @@ export async function runWorkflow(
       Object.assign(allOutputs, scope.outputs);
     }
     await journal.setStatus('completed');
+    if (wf.outputs) {
+      const stepsCtx = Object.fromEntries(
+        Object.entries(allOutputs).map(([k, v]) => [k, { output: v }]),
+      );
+      declaredOutputs = Object.fromEntries(
+        Object.entries(wf.outputs).map(([k, expr]) => [
+          k,
+          resolveExpr(expr, { inputs, steps: stepsCtx, env: process.env, bindings: {} }),
+        ]),
+      );
+    }
   } catch (err) {
     await journal.setStatus('failed');
     throw err;
   }
 
-  return { runId: journal.runId, outputs: allOutputs };
+  return { runId: journal.runId, outputs: allOutputs, declaredOutputs };
 }
