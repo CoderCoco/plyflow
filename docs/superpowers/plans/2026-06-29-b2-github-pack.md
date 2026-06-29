@@ -54,7 +54,7 @@ plugins/github/
 
 ---
 
-## Task B2.1: Scaffold the `@plyflow/github` package + shell-quoting helper
+## Task 1: Scaffold the `@plyflow/github` package + shell-quoting helper
 
 **Files:**
 - Create: `plugins/github/package.json`, `tsconfig.json`, `tsdown.config.ts`, `vitest.config.ts`
@@ -184,7 +184,7 @@ git commit -m "feat(github): scaffold @plyflow/github package + shell-quoting he
 
 ---
 
-## Task B2.2: `github.issue` step + output schemas module
+## Task 2: `github.issue` step + output schemas module
 
 **Files:**
 - Create: `plugins/github/src/schemas.ts`
@@ -340,7 +340,7 @@ git commit -m "feat(github): add github.issue step + output schemas"
 
 ---
 
-## Task B2.3: `github.pr` step (create-or-reuse)
+## Task 3: `github.pr` step (create-or-reuse)
 
 **Files:**
 - Create: `plugins/github/src/pr.ts`
@@ -480,7 +480,7 @@ git commit -m "feat(github): add github.pr step (create-or-reuse)"
 
 ---
 
-## Task B2.4: `github.comments` step
+## Task 4: `github.comments` step
 
 **Files:**
 - Create: `plugins/github/src/comments.ts`
@@ -634,7 +634,7 @@ git commit -m "feat(github): add github.comments step"
 
 ---
 
-## Task B2.5: `github.review` step
+## Task 5: `github.review` step
 
 **Files:**
 - Create: `plugins/github/src/review.ts`
@@ -790,7 +790,7 @@ git commit -m "feat(github): add github.review step"
 
 ---
 
-## Task B2.6: Register function + integration test
+## Task 6: Register function + integration test
 
 **Files:**
 - Create: `plugins/github/src/index.ts`

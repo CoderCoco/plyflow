@@ -61,7 +61,7 @@ website/
 
 ---
 
-## Task B3.1: Wire the packs into the workspace and the mission example
+## Task 1: Wire the packs into the workspace and the mission example
 
 **Files:**
 - Modify: `pnpm-workspace.yaml`
@@ -124,7 +124,7 @@ git commit -m "chore(mission): add example manifest + workspace glob for plugin 
 
 ---
 
-## Task B3.2: Migrate `mission.yaml` to the pack steps
+## Task 2: Migrate `mission.yaml` to the pack steps
 
 **Files:**
 - Modify: `examples/mission/mission.yaml`
@@ -281,7 +281,7 @@ git commit -m "refactor(mission): port mission.yaml onto @plyflow/git + @plyflow
 
 ---
 
-## Task B3.3: Migrate `comms.yaml` to the pack steps
+## Task 3: Migrate `comms.yaml` to the pack steps
 
 **Files:**
 - Modify: `examples/mission/comms.yaml`
@@ -395,7 +395,7 @@ git commit -m "refactor(mission): port comms.yaml onto @plyflow/github + @plyflo
 
 ---
 
-## Task B3.4: Delete dead lib modules + update mission tests; keep the e2e green
+## Task 4: Delete dead lib modules + update mission tests; keep the e2e green
 
 **Files:**
 - Delete: `examples/mission/lib/{git-worktree,git-commit,git-push,gh-issue,gh-pr,gh-comments,post-comment,exec}.ts`
@@ -510,7 +510,7 @@ git commit -m "refactor(mission): delete hand-rolled git/gh libs; e2e uses engin
 
 ---
 
-## Task B3.5: Document the plugin packs on the website
+## Task 5: Document the plugin packs on the website
 
 **Files:**
 - Create: `website/docs/steps/plugin-packs.md`
