@@ -21,7 +21,7 @@
 
 ## File Structure
 
-```
+```text
 packages/cli/src/
   args.ts             # MODIFY: ParsedArgs.dryRun; parse --dry-run
   args.test.ts        # MODIFY: --dry-run parsing
@@ -486,4 +486,3 @@ git commit -m "test(testing): agent+sh e2e with fakeProvider+mockExec; docs"
 **Adjust-at-implementation notes:** (a) Task 5 Step 2 — verify the `agent` step output shape against `steps/agent.ts` before locking the e2e assertion. (b) Task 4 Step 6 — confirm `ShellExec` is re-exported from the core barrel (added in A1); if not, that one-line core-barrel fix is in scope.
 
 **Deliberate scope note:** A `runWorkflowForTest(...)` convenience wrapper is intentionally omitted (YAGNI) — callers compose `runWorkflow` with `fakeProvider`/`mockExec`/`dryRun` directly, as the e2e shows. `mockExec` targets the `sh`-step `ShellExec`; the separate workflow-env `Exec` (npm install) is already injectable via the existing `RunOptions.exec` and is out of scope here.
-```
