@@ -2,12 +2,12 @@ import { readFileSync } from 'node:fs';
 
 const STRUCTURED = new Set(['object', 'json', 'array']);
 
-function parseStructured(key: string, type: string, source: string): unknown {
+function parseStructured(key: string, type: string, source: string, origin: string): unknown {
   let value: unknown;
   try {
     value = JSON.parse(source);
   } catch {
-    throw new Error(`input "${key}" (type ${type}) is not valid JSON: ${source}`);
+    throw new Error(`input "${key}" (type ${type}) is not valid JSON: ${origin}`);
   }
   if (type === 'array' && !Array.isArray(value)) {
     throw new Error(`input "${key}" must be a JSON array`);
@@ -31,8 +31,10 @@ export function coerceInputs(
     } else if (t === 'boolean') {
       out[k] = v === 'true';
     } else if (t && STRUCTURED.has(t)) {
-      const source = v.startsWith('@') ? readFile(v.slice(1)) : v;
-      out[k] = parseStructured(k, t, source);
+      const isFile = v.startsWith('@');
+      const source = isFile ? readFile(v.slice(1)) : v;
+      const origin = isFile ? v.slice(1) : v.length > 60 ? `${v.slice(0, 60)}…` : v;
+      out[k] = parseStructured(k, t, source, origin);
     } else {
       out[k] = v;
     }
