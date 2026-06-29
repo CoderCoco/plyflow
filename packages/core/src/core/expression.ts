@@ -12,6 +12,16 @@ const WHOLE = /^\$\{\{\s*([\s\S]+?)\s*\}\}$/;
 // cannot be re-declared as `const` inside the function body in strict mode.
 const NAMED_PARAMS = new Set(['inputs', 'steps', 'env', '__b', '__h']);
 
+// JS reserved words that cannot be used as `const` identifiers.
+const JS_RESERVED = new Set([
+  'break', 'case', 'catch', 'class', 'const', 'continue', 'debugger', 'default',
+  'delete', 'do', 'else', 'export', 'extends', 'false', 'finally', 'for',
+  'function', 'if', 'import', 'in', 'instanceof', 'let', 'new', 'null', 'return',
+  'static', 'super', 'switch', 'this', 'throw', 'true', 'try', 'typeof', 'var',
+  'void', 'while', 'with', 'yield', 'enum', 'await', 'implements', 'interface',
+  'package', 'private', 'protected', 'public',
+]);
+
 export const EXPRESSION_HELPERS = Object.freeze({
   map: (arr: unknown[], fn: (x: unknown, i: number) => unknown) => arr.map(fn),
   filter: (arr: unknown[], fn: (x: unknown, i: number) => unknown) => arr.filter(fn),
@@ -21,18 +31,23 @@ export const EXPRESSION_HELPERS = Object.freeze({
   every: (arr: unknown[], fn: (x: unknown, i: number) => unknown) => arr.every(fn),
   unique: (arr: unknown[]) => [...new Set(arr)],
   groupBy: (arr: unknown[], fn: (x: unknown) => string) => {
-    const out: Record<string, unknown[]> = {};
+    if (arr == null) return {} as Record<string, unknown[]>;
+    const out: Record<string, unknown[]> = Object.create(null);
     for (const x of arr) {
       const k = String(fn(x));
       (out[k] ??= []).push(x);
     }
     return out;
   },
-  keys: (o: object) => Object.keys(o),
-  values: (o: object) => Object.values(o),
-  entries: (o: object) => Object.entries(o),
+  keys: (o: object | null | undefined) => (o == null ? [] : Object.keys(o)),
+  values: (o: object | null | undefined) => (o == null ? [] : Object.values(o)),
+  entries: (o: object | null | undefined) => (o == null ? [] : Object.entries(o)),
   len: (x: unknown) =>
-    Array.isArray(x) || typeof x === 'string' ? x.length : Object.keys(x as object).length,
+    x == null
+      ? 0
+      : Array.isArray(x) || typeof x === 'string'
+        ? x.length
+        : Object.keys(x as object).length,
   flat: (arr: unknown[], depth = 1) => arr.flat(depth),
   sort: (arr: unknown[], fn?: (a: unknown, b: unknown) => number) => [...arr].sort(fn),
 });
@@ -45,7 +60,7 @@ function evalExpr(src: string, ctx: ExprContext): unknown {
   // from the const-declaration list — the named param takes precedence in that case.
   const bindings = ctx.bindings ?? {};
   const bindingNames = Object.keys(bindings).filter(
-    (k) => /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(k) && !NAMED_PARAMS.has(k),
+    (k) => /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(k) && !NAMED_PARAMS.has(k) && !JS_RESERVED.has(k),
   );
   const bindingSet = new Set(bindingNames);
   const bindingDecls = bindingNames.map((k) => `const ${k} = __b[${JSON.stringify(k)}];`).join('');
