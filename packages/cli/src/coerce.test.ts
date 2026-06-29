@@ -36,4 +36,16 @@ describe('coerceInputs', () => {
   it('leaves unknown/declared-less keys as raw strings', () => {
     expect(coerceInputs({ x: 'v' }, undefined)).toEqual({ x: 'v' });
   });
+
+  it('does not dump the full payload in a JSON parse error', () => {
+    const big = 'x'.repeat(200);
+    try {
+      coerceInputs({ j: big }, defs({ j: 'json' }));
+      throw new Error('should have thrown');
+    } catch (e) {
+      const msg = (e as Error).message;
+      expect(msg).not.toContain(big);       // full payload not leaked
+      expect(msg).toContain('…');            // truncated
+    }
+  });
 });

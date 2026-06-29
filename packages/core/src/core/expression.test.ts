@@ -71,6 +71,28 @@ describe('expression stdlib', () => {
     const c = ctx2({ bindings: { map: 'I am a binding' } });
     expect(resolve('${{ map }}', c)).toBe('I am a binding');
   });
+
+  it('a reserved-word binding name does not crash the evaluator', () => {
+    // `default` is a reserved word; it must be silently skipped (not emitted as const).
+    const c = ctx2({ bindings: { default: 'x', item: 5 } });
+    // The reserved binding is unreferenced; a normal binding still works.
+    expect(resolve('${{ item * 2 }}', c)).toBe(10);
+    // And referencing a helper in the same scope still works (no SyntaxError poisoned the body).
+    expect(resolve('${{ map([1,2], n => n + 1) }}', c)).toEqual([2, 3]);
+  });
+
+  it('groupBy is safe against __proto__ keys', () => {
+    const out = resolve('${{ groupBy(["a","b"], () => "__proto__") }}', ctx2()) as Record<string, unknown[]>;
+    expect(out['__proto__']).toEqual(['a', 'b']);
+    // Object prototype is untouched.
+    expect(Object.prototype.hasOwnProperty.call(out, '__proto__')).toBe(true);
+  });
+
+  it('collection helpers tolerate null/undefined', () => {
+    expect(resolve('${{ keys(null) }}', ctx2())).toEqual([]);
+    expect(resolve('${{ values(undefined) }}', ctx2())).toEqual([]);
+    expect(resolve('${{ len(null) }}', ctx2())).toBe(0);
+  });
 });
 
 describe('resolve with bindings', () => {
