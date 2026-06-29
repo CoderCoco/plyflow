@@ -135,20 +135,12 @@ async function autoPrompt(_stepId: string, _req: unknown): Promise<unknown> {
 
 describe('mission.yaml dry-run end-to-end', () => {
   let runDir: string;
-  const originalDryrun = process.env.MISSION_DRYRUN;
 
   beforeEach(async () => {
-    process.env.MISSION_DRYRUN = '1';
     runDir = await mkdtemp(join(tmpdir(), 'plyflow-mission-dryrun-'));
   });
 
   afterEach(async () => {
-    // Restore env var
-    if (originalDryrun === undefined) {
-      delete process.env.MISSION_DRYRUN;
-    } else {
-      process.env.MISSION_DRYRUN = originalDryrun;
-    }
     await rm(runDir, { recursive: true, force: true });
   });
 
@@ -161,6 +153,7 @@ describe('mission.yaml dry-run end-to-end', () => {
       runDir,
       prompt: autoPrompt,
       isTty: true,
+      dryRun: true,
     });
 
     expect(result).toBeDefined();
@@ -176,6 +169,7 @@ describe('mission.yaml dry-run end-to-end', () => {
       runDir,
       prompt: autoPrompt,
       isTty: true,
+      dryRun: true,
     });
 
     // Use startsWith to avoid matching cross-mentions (e.g. "Flight Director's plan" in Astronaut prompt)
@@ -194,6 +188,7 @@ describe('mission.yaml dry-run end-to-end', () => {
       runDir,
       prompt: autoPrompt,
       isTty: true,
+      dryRun: true,
     });
 
     // 1 task → 1 astronaut call, 1 controller call (PASS on first try)
@@ -217,28 +212,26 @@ describe('mission.yaml dry-run end-to-end', () => {
       runDir,
       prompt: autoPrompt,
       isTty: true,
+      dryRun: true,
     });
 
     const scoutCalls = provider.calls.filter((c) => c.system.startsWith('You are the Scout'));
     expect(scoutCalls).toHaveLength(1);
   });
 
-  it('Docking pr step produces a pr_number in outputs', async () => {
+  it('Docking pr step produces a pr number in outputs', async () => {
     const provider = new MissionFakeProvider();
 
     const result = await runWorkflow(missionYamlPath, {
       inputs: { issue: 123, repo: 'owner/repo' },
-      provider,
-      runDir,
-      prompt: autoPrompt,
-      isTty: true,
+      provider, runDir, prompt: autoPrompt, isTty: true, dryRun: true,
     });
 
-    // The pr step output should be the GhPrResult from the dry-run gate.
-    const prOutput = result.outputs['pr'] as { pr_number: number; pr_url: string } | undefined;
+    // github.pr dry-run output: { number, url, created }
+    const prOutput = result.outputs['pr'] as { number: number; url: string; created: boolean } | undefined;
     expect(prOutput).toBeDefined();
-    expect(typeof prOutput?.pr_number).toBe('number');
-    expect(prOutput?.pr_number).toBe(1);
+    expect(typeof prOutput?.number).toBe('number');
+    expect(prOutput?.created).toBe(false);
   });
 
   it('Build produces an output entry for each task (foreach fan-out)', async () => {
@@ -250,6 +243,7 @@ describe('mission.yaml dry-run end-to-end', () => {
       runDir,
       prompt: autoPrompt,
       isTty: true,
+      dryRun: true,
     });
 
     // build output is a foreach result: { [taskName]: { attempt: {...}, commit: {...} } }
@@ -277,19 +271,12 @@ describe('mission.yaml dry-run end-to-end', () => {
 
 describe('mission.yaml FAIL-first dry-run (FIX 7)', () => {
   let runDir: string;
-  const originalDryrun = process.env.MISSION_DRYRUN;
 
   beforeEach(async () => {
-    process.env.MISSION_DRYRUN = '1';
     runDir = await mkdtemp(join(tmpdir(), 'plyflow-mission-failfirst-'));
   });
 
   afterEach(async () => {
-    if (originalDryrun === undefined) {
-      delete process.env.MISSION_DRYRUN;
-    } else {
-      process.env.MISSION_DRYRUN = originalDryrun;
-    }
     await rm(runDir, { recursive: true, force: true });
   });
 
@@ -384,6 +371,7 @@ describe('mission.yaml FAIL-first dry-run (FIX 7)', () => {
       runDir,
       prompt: autoPrompt,
       isTty: true,
+      dryRun: true,
     });
 
     // CRITICAL: retry loop fired → astronaut was called at least twice
