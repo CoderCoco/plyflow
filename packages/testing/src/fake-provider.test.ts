@@ -24,4 +24,12 @@ describe('fakeProvider', () => {
     const p = fakeProvider({ X: 'x' });
     await expect(p.complete({ system: 'no match', prompt: '', model: 'm' })).rejects.toThrow(/no fakeProvider rule/i);
   });
+
+  it('wraps a structured object that happens to contain a text field (not misclassified as AIResult)', async () => {
+    // { text, title } has a non-AIResult key (title) → it is the structured output, not an AIResult.
+    const p = fakeProvider({ X: { text: 'body', title: 'heading' } });
+    const r = await p.complete({ system: 'contains X', prompt: '', model: 'm' });
+    expect(r.structured).toEqual({ text: 'body', title: 'heading' });
+    expect(r.text).toBeUndefined();
+  });
 });
