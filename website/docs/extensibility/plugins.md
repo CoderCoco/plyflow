@@ -45,7 +45,7 @@ Plugins can also be declared by **package name** — a bare specifier such as `@
 
 ```yaml
 plugins:
-  - @plyflow/git      # bare package specifier — resolved from node_modules
+  - '@plyflow/git'    # bare package specifier — resolved from node_modules
   - ./steps/local.ts  # relative path — loaded as a local file
 ```
 
@@ -61,7 +61,7 @@ plugins:
 }
 ```
 
-When a plugin entry is a bare package specifier (no leading `./` or `../`, and no `.ts`/`.js` extension), plyflow resolves it from the workflow directory's `node_modules`. Declare the package in the workflow's `package.json` `dependencies` so it is installed before the workflow runs.
+When a plugin entry is a bare package specifier (no leading `./` or `../`, and no `.ts`/`.js`/`.tsx`/`.jsx` extension), plyflow resolves it from the workflow directory's `node_modules`. Declare the package in the workflow's `package.json` `dependencies` so it is installed before the workflow runs.
 
 A plugin reference that starts with `./` or `../`, ends in `.ts`/`.js`/`.tsx`/`.jsx`, or is an absolute path is always treated as a local file path.
 
