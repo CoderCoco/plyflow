@@ -17,6 +17,7 @@ import { createRootScope, runSteps } from './exec.js';
 import { createLoader } from './module-loader.js';
 import { prepareEnv, type Exec } from './workflow-env.js';
 import { loadPlugins } from './plugins.js';
+import { resolvePluginRef } from './plugin-ref.js';
 import type { ShellExec } from './shell.js';
 
 export type EngineEvent =
@@ -89,13 +90,12 @@ export async function runWorkflow(
   // DEFAULT_PROVIDED with any plyflow.provided entries from package.json).
   const loader = createLoader({ baseDir: env.dir, provided: env.provided });
 
-  // Resolve plugin paths to absolute before deduplication so that
-  // './echo-plugin.ts' and 'echo-plugin.ts' (both relative to env.dir)
-  // collapse to the same entry and the file is only loaded once.
-  const { resolve: pathResolve } = await import('node:path');
+  // Resolve plugin paths before deduplication: relative refs become absolute
+  // (so './echo-plugin.ts' and 'echo-plugin.ts' collapse to the same entry),
+  // bare package specifiers pass through unchanged for the module loader to resolve.
   const pluginPaths = Array.from(
     new Set(
-      [...env.plugins, ...(wf.plugins ?? [])].map((p) => pathResolve(env.dir, p)),
+      [...env.plugins, ...(wf.plugins ?? [])].map((p) => resolvePluginRef(env.dir, p)),
     ),
   );
 
