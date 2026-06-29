@@ -23,4 +23,11 @@ describe('resolvePluginRef', () => {
     expect(resolvePluginRef('/wf', 'echo-plugin.ts')).toBe(resolve('/wf', 'echo-plugin.ts'));
     expect(resolvePluginRef('/wf', 'p.js')).toBe(resolve('/wf', 'p.js'));
   });
+
+  it('treats an extension-bearing package SUBPATH (has a slash) as a bare specifier', () => {
+    // A slash means it's a package subpath that must resolve from node_modules,
+    // NOT a local file — only a bare filename (no slash) is a local file.
+    expect(resolvePluginRef('/wf', '@scope/pkg/plugin.js')).toBe('@scope/pkg/plugin.js');
+    expect(resolvePluginRef('/wf', 'some-pkg/dist/index.js')).toBe('some-pkg/dist/index.js');
+  });
 });
