@@ -26,13 +26,13 @@ describe('github.review', () => {
 
   it('re-requests reviewers', async () => {
     const calls: string[] = [];
-    const exec = mockExec({ 'gh pr request-reviews': { stdout: '' } });
+    const exec = mockExec({ 'gh pr edit': { stdout: '' } });
     const traced = async (cmd: string) => { calls.push(cmd); return exec(cmd); };
     const step = makeGithubReviewStep(traced);
     const res = await step.run(step.parse({ id: 'r', step: 'github.review' }), ctx({ with: { pr: 5, reRequest: ['alice', 'bob'] } }));
     expect(res.output).toEqual({ action: 'reRequest', reviewers: ['alice', 'bob'] });
-    expect(calls[0]).toContain('--reviewer alice');
-    expect(calls[0]).toContain('--reviewer bob');
+    expect(calls[0]).toContain('--add-reviewer alice');
+    expect(calls[0]).toContain('--add-reviewer bob');
   });
 
   it('resolves a review thread via graphql', async () => {

@@ -39,15 +39,14 @@ export function makeGithubReviewStep(exec: ShellExec = defaultShellExec): StepTy
       }
 
       if (reRequest !== undefined) {
-        const args = ['gh', 'pr', 'request-reviews', String(pr), ...repoArgs];
-        for (const reviewer of reRequest) args.push('--reviewer', reviewer);
+        const args = ['gh', 'pr', 'edit', String(pr), ...repoArgs];
+        for (const reviewer of reRequest) args.push('--add-reviewer', reviewer);
         const r = await exec(shJoin(args));
-        if (r.code !== 0) throw new Error(`gh pr request-reviews failed (code ${r.code}): ${r.stderr.trim()}`);
+        if (r.code !== 0) throw new Error(`gh pr edit failed (code ${r.code}): ${r.stderr.trim()}`);
         return { output: ReviewOutput.parse({ action: 'reRequest', reviewers: reRequest }) };
       }
 
-      const mutation = `mutation { resolveReviewThread(input: { threadId: "${resolveThread!}" }) { thread { id isResolved } } }`;
-      const r = await exec(shJoin(['gh', 'api', 'graphql', '-f', `query=${mutation}`]));
+      const r = await exec(shJoin(['gh', 'api', 'graphql', '-f', 'query=mutation($id:ID!){resolveReviewThread(input:{threadId:$id}){thread{id isResolved}}}', '-f', `id=${resolveThread!}`]));
       if (r.code !== 0) throw new Error(`gh api resolveReviewThread failed (code ${r.code}): ${r.stderr.trim()}`);
       return { output: ReviewOutput.parse({ action: 'resolveThread', resolved: true }) };
     },
