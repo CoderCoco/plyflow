@@ -140,6 +140,8 @@ export async function runWorkflow(
         baseDir: env.dir,
         provider: opts.provider,
         registry,
+        runDir,
+        exec: opts.exec,
         journal,
         journalPath: `phase:${phase.name}`,
         dirty,
@@ -166,7 +168,6 @@ export async function runWorkflow(
       // Merge this phase's outputs back into the shared accumulator.
       Object.assign(allOutputs, scope.outputs);
     }
-    await journal.setStatus('completed');
     if (wf.outputs) {
       const stepsCtx = Object.fromEntries(
         Object.entries(allOutputs).map(([k, v]) => [k, { output: v }]),
@@ -178,6 +179,7 @@ export async function runWorkflow(
         ]),
       );
     }
+    await journal.setStatus('completed');
   } catch (err) {
     await journal.setStatus('failed');
     throw err;
