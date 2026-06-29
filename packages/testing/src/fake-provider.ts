@@ -5,10 +5,13 @@ const AIRESULT_KEYS = new Set(['text', 'structured', 'usage']);
 function isAIResult(value: unknown): value is AIResult {
   if (value === null || typeof value !== 'object') return false;
   const keys = Object.keys(value);
+  // Treat the value as an AIResult only when it carries a payload field
+  // (`text` or `structured`) and has no foreign keys. A bare `{ usage: … }`
+  // (no text/structured) is a structured test fixture, not an AIResult.
   return (
     keys.length > 0 &&
     keys.every((k) => AIRESULT_KEYS.has(k)) &&
-    ('text' in value || 'structured' in value || 'usage' in value)
+    ('text' in value || 'structured' in value)
   );
 }
 

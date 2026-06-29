@@ -32,4 +32,10 @@ describe('fakeProvider', () => {
     expect(r.structured).toEqual({ text: 'body', title: 'heading' });
     expect(r.text).toBeUndefined();
   });
+
+  it('treats a bare usage-only object as a structured fixture (not an AIResult)', async () => {
+    const p = fakeProvider({ X: { usage: 1 } });
+    const r = await p.complete({ system: 'contains X', prompt: '', model: 'm' });
+    expect(r.structured).toEqual({ usage: 1 });
+  });
 });
