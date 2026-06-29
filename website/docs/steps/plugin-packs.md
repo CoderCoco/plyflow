@@ -41,7 +41,7 @@ npm install @plyflow/git @plyflow/github
 | `git.worktree` | `issue`, `slug`, `base?` (default `main`) | `{ path, branch, created }` — create or reuse a worktree; branch derived from issue + slug |
 | `git.commit` | `path`, `message` | `{ committed, sha? }` — stage all & commit; clean tree → `committed: false` |
 | `git.push` | `path`, `branch?`, `setUpstream?` (default `true`) | `{ pushed, ref }` — pushes current branch if `branch` omitted |
-| `git.diff` | `path`, `base?` (default `main`) | `{ files, patch }` — changed files + patch vs `origin/<base>...HEAD` |
+| `git.diff` | `path`, `base?` (default `main`) | `{ files, patch? }` — changed files + patch vs `origin/<base>...HEAD` |
 
 ```yaml
 - id: worktree
@@ -59,7 +59,7 @@ npm install @plyflow/git @plyflow/github
 | `github.issue` | `number`, `repo?` | `{ number, title, body }` |
 | `github.pr` | `title`, `body`, `head`, `base?` (default `main`), `repo?` | `{ number, url, created }` — reuses the open PR for `head` if present |
 | `github.comments` | `pr`, `repo?`, `since?` | `{ comments, ci: { passing }, merged, ... }` — also passes through raw `gh pr view` fields (`headRefName`, etc.) |
-| `github.review` | `pr`, `repo?`, exactly one of `comment` \| `reRequest` \| `resolveThread` | action-specific result |
+| `github.review` | `pr`, `repo?`, exactly one of `comment` (string) \| `reRequest` (`string[]` of reviewer logins) \| `resolveThread` (thread id) | action-specific result |
 
 ```yaml
 - id: pr
