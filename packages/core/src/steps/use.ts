@@ -25,6 +25,9 @@ export function makeUseStep(run: RunWorkflowFn): StepType<UseCfg> {
       }
       const result = await run(childAbs, {
         provider: ctx.provider,
+        registry: ctx.registry,
+        runDir: ctx.runDir,
+        exec: ctx.exec,
         // `with:` is already engine-resolved against the parent scope → child inputs.
         inputs: ctx.with,
         isTty: ctx.isTty,
