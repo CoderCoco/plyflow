@@ -121,6 +121,19 @@ importers:
         specifier: ^6.1.2
         version: 6.1.5
 
+  plugins/git:
+    dependencies:
+      '@plyflow/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
+    devDependencies:
+      '@plyflow/testing':
+        specifier: workspace:*
+        version: link:../../packages/testing
+
 packages:
 
   '@alcalzone/ansi-tokenize@0.3.0':
