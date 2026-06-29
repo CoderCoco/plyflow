@@ -7,18 +7,7 @@ import type { UiRequest } from '@plyflow/core';
 import { resolveWorkflowSource } from '@plyflow/core/remote';
 import { ensureTrusted, readlineConfirm } from './trust-prompt.js';
 import { LineLogger, App } from '@plyflow/tui';
-
-function coerceInputs(
-  raw: Record<string, string>,
-  defs: Record<string, { type: string }> | undefined,
-): Record<string, unknown> {
-  const out: Record<string, unknown> = {};
-  for (const [k, v] of Object.entries(raw)) {
-    const t = defs?.[k]?.type;
-    out[k] = t === 'number' ? Number(v) : t === 'boolean' ? v === 'true' : v;
-  }
-  return out;
-}
+import { coerceInputs } from './coerce.js';
 
 export async function main(argv: string[]): Promise<void> {
   const args = parseArgs(argv);

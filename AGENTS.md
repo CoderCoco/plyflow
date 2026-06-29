@@ -42,6 +42,11 @@ interactive Ink/React TUI, and is also usable as a library.
   there directly.
 - **Conventional Commits** for commit messages.
 
+## Input types and expression stdlib
+
+- **Structured inputs:** `inputs:` declarations accept `type: object | json | array` in addition to `string | number | boolean`; the CLI coerces `--input k='<json>'` or reads from file with `--input k=@path.json`.
+- **Expression helpers:** 14 frozen helpers (`map`, `filter`, `flatMap`, `find`, `some`, `every`, `unique`, `groupBy`, `keys`, `values`, `entries`, `len`, `flat`, `sort`) are injected as bare identifiers into every `${{ }}` expression; a workflow binding with the same name shadows the helper.
+
 ## Architecture map
 
 This is a pnpm workspace monorepo. Source lives under `packages/`:
