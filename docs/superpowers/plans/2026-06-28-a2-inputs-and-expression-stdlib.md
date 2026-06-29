@@ -21,7 +21,7 @@
 
 ## File Structure
 
-```
+```text
 packages/core/src/
   core/
     types.ts            # MODIFY: InputDef.type adds 'object' | 'json' | 'array'
@@ -339,18 +339,27 @@ export const EXPRESSION_HELPERS = Object.freeze({
   every: (arr: unknown[], fn: (x: unknown, i: number) => unknown) => arr.every(fn),
   unique: (arr: unknown[]) => [...new Set(arr)],
   groupBy: (arr: unknown[], fn: (x: unknown) => string) => {
-    const out: Record<string, unknown[]> = {};
+    if (arr == null) return {} as Record<string, unknown[]>;
+    const out: Record<string, unknown[]> = Object.create(null);
     for (const x of arr) {
       const k = String(fn(x));
       (out[k] ??= []).push(x);
     }
     return out;
   },
-  keys: (o: object) => Object.keys(o),
-  values: (o: object) => Object.values(o),
-  entries: (o: object) => Object.entries(o),
+  // Null-safe collection helpers: all return an empty collection when called
+  // with null or undefined, rather than throwing a TypeError at runtime.
+  // keys/values/entries → [] | entries: (o: object | null | undefined) → []
+  // len(null/undefined) → 0
+  keys: (o: object | null | undefined) => (o == null ? [] : Object.keys(o)),
+  values: (o: object | null | undefined) => (o == null ? [] : Object.values(o)),
+  entries: (o: object | null | undefined) => (o == null ? [] : Object.entries(o)),
   len: (x: unknown) =>
-    Array.isArray(x) || typeof x === 'string' ? x.length : Object.keys(x as object).length,
+    x == null
+      ? 0
+      : Array.isArray(x) || typeof x === 'string'
+        ? x.length
+        : Object.keys(x as object).length,
   flat: (arr: unknown[], depth = 1) => arr.flat(depth),
   sort: (arr: unknown[], fn?: (a: unknown, b: unknown) => number) => [...arr].sort(fn),
 });
