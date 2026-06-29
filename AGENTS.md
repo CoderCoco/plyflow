@@ -10,7 +10,7 @@ plyflow runs AI-agent workflows defined in YAML — "GitHub Actions for AI agent
 A workflow is a YAML file with `phases` (run sequentially) containing `steps`
 (run in parallel within a phase unless constrained by `needs`). Steps dispatch by
 exactly one type key: `run` | `uses` | `agent` | `input` | `parallel` | `loop` |
-`foreach` | `widget` | `step` | `sh`. It ships as a CLI (`plyflow run <file>`) with an
+`foreach` | `widget` | `step` | `sh` | `use`. It ships as a CLI (`plyflow run <file>`) with an
 interactive Ink/React TUI, and is also usable as a library.
 
 ## Commands

@@ -1,5 +1,7 @@
 import type { StepDef } from '../core/types.js';
 import type { AIProvider } from '../providers/types.js';
+import type { StepRegistry } from './registry.js';
+import type { Exec } from '../core/workflow-env.js';
 
 export type StepEvent =
   | { type: 'log'; message: string }
@@ -23,12 +25,20 @@ export interface StepContext {
   /** Active bindings from the current scope (e.g. `item`, `iteration`). */
   bindings?: Record<string, unknown>;
   provider: AIProvider;
+  /** Step registry for the current run; forwarded to sub-workflow runs. */
+  registry: StepRegistry;
   /** Directory of the workflow file; used to resolve relative paths. */
   baseDir: string;
+  /** Journal directory for the current run; forwarded to sub-workflow runs. */
+  runDir: string;
+  /** Injectable exec for npm commands; forwarded to sub-workflow runs. */
+  exec?: Exec;
   /** Whether the process is running in an interactive TTY. */
   isTty: boolean;
   /** True when the run is in dry-run mode; side-effecting steps must not execute. */
   dryRun: boolean;
+  /** Absolute paths of ancestor sub-workflows in the current call chain (cycle guard). */
+  useChain?: string[];
   /** Bare specifiers whose modules are shared with plyflow's own copies (from workflow's package.json plyflow.provided). */
   provided: string[];
   resolve?(value: unknown): unknown;

@@ -1,5 +1,6 @@
 import { loadWorkflow } from './loader.js';
 import { Journal } from './journal.js';
+import { resolve as resolveExpr } from './expression.js';
 import { StepRegistry } from '../steps/registry.js';
 import { runStep } from '../steps/run.js';
 import { agentStep } from '../steps/agent.js';
@@ -9,6 +10,7 @@ import { makeParallelStep } from '../steps/parallel.js';
 import { makeLoopStep } from '../steps/loop.js';
 import { makeForeachStep } from '../steps/foreach.js';
 import { makeShStep } from '../steps/sh.js';
+import { makeUseStep } from '../steps/use.js';
 import type { UiRequest } from '../steps/types.js';
 import type { AIProvider } from '../providers/types.js';
 import { createRootScope, runSteps } from './exec.js';
@@ -36,6 +38,8 @@ export interface RunOptions {
   isTty?: boolean;
   /** Run side-effecting steps (sh, …) in dry-run mode. Defaults to false. */
   dryRun?: boolean;
+  /** Internal: ancestor sub-workflow paths for cycle detection. */
+  useChain?: string[];
   /** Injectable exec for running npm commands in prepareEnv; defaults to real npm. Useful for tests. */
   exec?: Exec;
 }
@@ -50,6 +54,7 @@ export function buildDefaultRegistry(): StepRegistry {
   reg.register(makeLoopStep());
   reg.register(makeForeachStep());
   reg.register(makeShStep());
+  reg.register(makeUseStep(runWorkflow));
   return reg;
 }
 
@@ -60,7 +65,7 @@ function randomRunId(): string {
 export async function runWorkflow(
   workflowPath: string,
   opts: RunOptions,
-): Promise<{ runId: string; outputs: Record<string, unknown> }> {
+): Promise<{ runId: string; outputs: Record<string, unknown>; declaredOutputs: Record<string, unknown> }> {
   const emit = (e: EngineEvent) => opts.onEvent?.(e);
 
   // Prepare the workflow environment: resolve dir, provided modules, plugins.
@@ -113,6 +118,7 @@ export async function runWorkflow(
   // Shared outputs and dirty set across all phases (cross-phase step references).
   const allOutputs: Record<string, unknown> = {};
   const dirty = new Set<string>();
+  let declaredOutputs: Record<string, unknown> = {};
 
   const prompt = opts.prompt ?? ((stepId: string) => Promise.reject(new Error(`no prompt handler provided for step "${stepId}"`)));
   const isTty = opts.isTty !== undefined ? opts.isTty : !!process.stdout.isTTY;
@@ -134,11 +140,14 @@ export async function runWorkflow(
         baseDir: env.dir,
         provider: opts.provider,
         registry,
+        runDir,
+        exec: opts.exec,
         journal,
         journalPath: `phase:${phase.name}`,
         dirty,
         isTty,
         dryRun: opts.dryRun ?? false,
+        useChain: opts.useChain ?? [],
         provided: env.provided,
         loadModule: (path) => loader.import(path),
         emit,
@@ -159,11 +168,22 @@ export async function runWorkflow(
       // Merge this phase's outputs back into the shared accumulator.
       Object.assign(allOutputs, scope.outputs);
     }
+    if (wf.outputs) {
+      const stepsCtx = Object.fromEntries(
+        Object.entries(allOutputs).map(([k, v]) => [k, { output: v }]),
+      );
+      declaredOutputs = Object.fromEntries(
+        Object.entries(wf.outputs).map(([k, expr]) => [
+          k,
+          resolveExpr(expr, { inputs, steps: stepsCtx, env: process.env, bindings: {} }),
+        ]),
+      );
+    }
     await journal.setStatus('completed');
   } catch (err) {
     await journal.setStatus('failed');
     throw err;
   }
 
-  return { runId: journal.runId, outputs: allOutputs };
+  return { runId: journal.runId, outputs: allOutputs, declaredOutputs };
 }

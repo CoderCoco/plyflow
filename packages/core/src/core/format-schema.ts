@@ -78,6 +78,7 @@ const stepDef: z.ZodType<any> = z.lazy(() =>
       params: z.record(z.string(), z.unknown()).optional(),
       widget: z.string().optional(),
       step: z.string().optional(),
+      use: z.string().optional(),
       default: z.unknown().optional(),
       sh: z.string().optional(),
       json: z.boolean().optional(),
@@ -90,13 +91,13 @@ const stepDef: z.ZodType<any> = z.lazy(() =>
     .refine(
       (s) => {
         const r = s as Record<string, unknown>;
-        return ['run', 'uses', 'agent', 'input', 'parallel', 'loop', 'foreach', 'widget', 'step', 'sh'].filter(
+        return ['run', 'uses', 'agent', 'input', 'parallel', 'loop', 'foreach', 'widget', 'step', 'sh', 'use'].filter(
           (k) => r[k] !== undefined,
         ).length === 1;
       },
       {
         message:
-          'a step must have exactly one type key: run | uses | agent | input | parallel | loop | foreach | widget | step | sh',
+          'a step must have exactly one type key: run | uses | agent | input | parallel | loop | foreach | widget | step | sh | use',
       },
     )
     .superRefine((s, ctx) => {
@@ -133,6 +134,7 @@ const stepDef: z.ZodType<any> = z.lazy(() =>
 const workflowSchema = z.object({
   name: z.string().min(1),
   inputs: z.record(z.string(), inputDef).optional(),
+  outputs: z.record(z.string(), z.string()).optional(),
   phases: z
     .array(z.object({ name: z.string().min(1), steps: z.array(stepDef).min(1) }))
     .min(1),

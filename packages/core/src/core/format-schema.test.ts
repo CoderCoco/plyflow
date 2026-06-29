@@ -297,3 +297,26 @@ describe('structured input types', () => {
     ).toThrow();
   });
 });
+
+// ── A3: sub-workflow outputs block and use step ──────────────────────────────
+
+describe('sub-workflows schema', () => {
+  it('accepts a top-level outputs block and a use step', () => {
+    const wf = parseWorkflow({
+      name: 'w',
+      outputs: { path: '${{ steps.x.output }}' },
+      phases: [{ name: 'p', steps: [{ id: 's', use: './sub.yaml', with: { a: 1 } }] }],
+    });
+    expect(wf.outputs!.path).toBe('${{ steps.x.output }}');
+    expect(wf.phases[0]!.steps[0]!.use).toBe('./sub.yaml');
+  });
+
+  it('rejects a step with both use and run (exactly-one-type-key)', () => {
+    expect(() =>
+      parseWorkflow({
+        name: 'w',
+        phases: [{ name: 'p', steps: [{ id: 's', use: './sub.yaml', run: 'return 1' }] }],
+      }),
+    ).toThrow();
+  });
+});

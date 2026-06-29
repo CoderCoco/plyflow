@@ -7,6 +7,7 @@ import type { AIProvider } from '../providers/types.js';
 import type { StepDef } from './types.js';
 import type { EngineEvent } from './engine.js';
 import { DEFAULT_PROVIDED } from './module-loader.js';
+import type { Exec } from './workflow-env.js';
 
 export interface ExecScope {
   inputs: Record<string, unknown>;
@@ -14,6 +15,10 @@ export interface ExecScope {
   baseDir: string;
   provider: AIProvider;
   registry: StepRegistry;
+  /** Journal directory; forwarded to sub-workflow runs via use step. */
+  runDir: string;
+  /** Injectable exec for npm commands; forwarded to sub-workflow runs. */
+  exec?: Exec;
   outputs: Record<string, unknown>;
   bindings: Record<string, unknown>;
   inheritedSteps: Record<string, { output: unknown }>;
@@ -22,6 +27,7 @@ export interface ExecScope {
   dirty: Set<string>;
   isTty: boolean;
   dryRun: boolean;
+  useChain: string[];
   provided: string[];
   loadModule(path: string): Promise<unknown>;
   emit(e: EngineEvent): void;
@@ -39,11 +45,16 @@ export interface RootScopeOptions {
   baseDir: string;
   provider: AIProvider;
   registry: StepRegistry;
+  /** Journal directory; forwarded to sub-workflow runs via use step. Defaults to '.plyflow/runs'. */
+  runDir?: string;
+  /** Injectable exec for npm commands; forwarded to sub-workflow runs. */
+  exec?: Exec;
   journal: Journal;
   journalPath: string;
   dirty: Set<string>;
   isTty: boolean;
   dryRun?: boolean;
+  useChain?: string[];
   provided?: string[];
   loadModule(path: string): Promise<unknown>;
   emit(e: EngineEvent): void;
@@ -70,6 +81,8 @@ function makeRunChildren(
       baseDir: parentScope.baseDir,
       provider: parentScope.provider,
       registry: parentScope.registry,
+      runDir: parentScope.runDir,
+      exec: parentScope.exec,
       outputs: {},
       bindings: { ...parentScope.bindings, ...extraBindings },
       inheritedSteps,
@@ -78,6 +91,7 @@ function makeRunChildren(
       dirty: parentScope.dirty,
       isTty: parentScope.isTty,
       dryRun: parentScope.dryRun,
+      useChain: parentScope.useChain,
       provided: parentScope.provided,
       loadModule: parentScope.loadModule,
       emit: parentScope.emit,
@@ -97,6 +111,8 @@ export function createRootScope(opts: RootScopeOptions): ExecScope {
     baseDir: opts.baseDir,
     provider: opts.provider,
     registry: opts.registry,
+    runDir: opts.runDir ?? '.plyflow/runs',
+    exec: opts.exec,
     outputs: {},
     bindings: {},
     inheritedSteps: {},
@@ -105,6 +121,7 @@ export function createRootScope(opts: RootScopeOptions): ExecScope {
     dirty: opts.dirty,
     isTty: opts.isTty,
     dryRun: opts.dryRun ?? false,
+    useChain: opts.useChain ?? [],
     provided: opts.provided ?? DEFAULT_PROVIDED,
     loadModule: opts.loadModule,
     emit: opts.emit,
@@ -180,6 +197,7 @@ export async function runSteps(
       cwd: step.cwd,
       env: step.env,
       json: step.json,
+      use: step.use,
     });
 
     const journalKey = `${scope.journalPath}/${step.id}`;
@@ -208,9 +226,13 @@ export async function runSteps(
       with: resolvedWith,
       bindings: scope.bindings,
       provider: scope.provider,
+      registry: scope.registry,
       baseDir: scope.baseDir,
+      runDir: scope.runDir,
+      exec: scope.exec,
       isTty: scope.isTty,
       dryRun: scope.dryRun,
+      useChain: scope.useChain,
       provided: scope.provided,
       loadModule: scope.loadModule,
       resolve: (value: unknown) => resolveExpr(value, exprCtx()),
