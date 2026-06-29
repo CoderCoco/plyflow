@@ -45,6 +45,24 @@ importers:
         specifier: ^4.4.3
         version: 4.4.3
 
+  examples/mission:
+    dependencies:
+      '@plyflow/git':
+        specifier: workspace:*
+        version: link:../../plugins/git
+      '@plyflow/github':
+        specifier: workspace:*
+        version: link:../../plugins/github
+    devDependencies:
+      '@plyflow/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@plyflow/testing':
+        specifier: workspace:*
+        version: link:../../packages/testing
+
+  examples/plugins: {}
+
   packages/cli:
     dependencies:
       '@plyflow/core':
