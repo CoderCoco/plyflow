@@ -105,7 +105,13 @@ export default defineConfig({
 `plugins/github/vitest.config.ts`:
 ```ts
 import { defineConfig } from 'vitest/config';
-export default defineConfig({ test: { environment: 'node' } });
+// The @plyflow/source resolve condition makes workspace deps (@plyflow/core,
+// @plyflow/testing) resolve to their TS source during tests — required, since
+// their package.json `exports` gate source behind that condition.
+export default defineConfig({
+  ssr: { resolve: { conditions: ['@plyflow/source'] } },
+  test: { environment: 'node' },
+});
 ```
 
 - [ ] **Step 2: Install the workspace**
