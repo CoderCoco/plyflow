@@ -75,6 +75,19 @@ Inputs are coerced to the declared type:
 | `number` | `42` | `42` |
 | `boolean` | `true` | `true` |
 | `boolean` | `false` | `false` |
+| `object` | `'{"a":1}'` | `{ a: 1 }` (parsed JSON object) |
+| `array` | `'[1,2,3]'` | `[1, 2, 3]` (parsed JSON array) |
+| `json` | `'{"a":1}'` | `{ a: 1 }` (any parsed JSON value) |
+
+For `object`, `array`, and `json` types, prefix the value with `@` to read from a file instead:
+
+```bash
+# Inline JSON
+plyflow run ./wf.yaml --input 'roles={"planner":"opus","worker":"sonnet"}'
+
+# From a file
+plyflow run ./wf.yaml --input roles=@./config/roles.json
+```
 
 ## TTY vs non-TTY mode
 

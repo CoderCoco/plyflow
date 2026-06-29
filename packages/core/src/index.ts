@@ -46,3 +46,6 @@ export type {
 export { makeShStep } from './steps/sh.js';
 export { defaultShellExec } from './core/shell.js';
 export type { ShellExec, ShellResult } from './core/shell.js';
+
+// Expression stdlib (helpers available inside ${{ }})
+export { EXPRESSION_HELPERS } from './core/expression.js';

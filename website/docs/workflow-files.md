@@ -33,17 +33,55 @@ Inputs are declared as a map of name → `InputDef`:
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `type` | `string` \| `number` \| `boolean` | The value type |
+| `type` | `string` \| `number` \| `boolean` \| `object` \| `json` \| `array` | The value type |
 | `required` | boolean | Whether the input must be provided at runtime |
 | `default` | any | Default value when not provided |
 
-Inputs are provided on the command line with `--input key=value`:
+### Scalar input types
+
+Scalar inputs are provided on the command line with `--input key=value`:
 
 ```bash
 plyflow run ./wf.yaml --input text="hello" --input max_items=5
 ```
 
 Access them in expressions as `${{ inputs.text }}` and `${{ inputs.max_items }}`.
+
+### Structured input types (`object`, `json`, `array`)
+
+For structured data, declare the type and pass JSON on the command line:
+
+```yaml
+inputs:
+  roles:
+    type: object       # plain JS object; keys/values accessible normally
+  tasks:
+    type: array        # a JSON array
+  config:
+    type: json         # any JSON value (object, array, string, number, …)
+```
+
+Pass the value as a JSON string on the CLI — wrap in single quotes to avoid shell expansion:
+
+```bash
+plyflow run ./wf.yaml --input 'roles={"planner":"opus","worker":"sonnet"}'
+plyflow run ./wf.yaml --input 'tasks=["write","review","test"]'
+```
+
+To read structured input from a file, prefix the path with `@`:
+
+```bash
+plyflow run ./wf.yaml --input roles=@./config/roles.json
+```
+
+Access structured inputs in expressions exactly like any other input:
+
+```yaml
+- id: role-keys
+  run: return ctx.with.keys
+  with:
+    keys: "${{ keys(inputs.roles) }}"  # ['planner', 'worker']
+```
 
 ## `phases`
 
@@ -161,6 +199,27 @@ ${{ steps.planner.output.tasks[0].name }}
 # Null-safe access (use && pattern)
 ${{ steps.verify && steps.verify.output ? steps.verify.output.verdict : '' }}
 ```
+
+### Expression helpers
+
+The following helper functions are available as bare identifiers in every `${{ }}` expression. If a workflow input or binding has the same name as a helper, the binding wins and the helper is shadowed.
+
+| Helper | Signature | Example |
+|--------|-----------|---------|
+| `map` | `map(arr, fn)` | `${{ map(steps.items.output, x => x.name) }}` |
+| `filter` | `filter(arr, fn)` | `${{ filter(steps.list.output, x => x.active) }}` |
+| `flatMap` | `flatMap(arr, fn)` | `${{ flatMap(steps.groups.output, g => g.members) }}` |
+| `find` | `find(arr, fn)` | `${{ find(steps.list.output, x => x.id === inputs.id) }}` |
+| `some` | `some(arr, fn)` | `${{ some(steps.checks.output, c => c.failed) }}` |
+| `every` | `every(arr, fn)` | `${{ every(steps.checks.output, c => c.passed) }}` |
+| `unique` | `unique(arr)` | `${{ unique(steps.tags.output) }}` |
+| `groupBy` | `groupBy(arr, fn)` | `${{ groupBy(steps.items.output, x => x.type) }}` |
+| `keys` | `keys(obj)` | `${{ keys(inputs.roles) }}` |
+| `values` | `values(obj)` | `${{ values(inputs.config) }}` |
+| `entries` | `entries(obj)` | `${{ entries(inputs.mapping) }}` |
+| `len` | `len(arr \| str \| obj)` | `${{ len(steps.results.output) }}` |
+| `flat` | `flat(arr, depth?)` | `${{ flat(steps.nested.output) }}` |
+| `sort` | `sort(arr, fn?)` | `${{ sort(steps.scores.output, (a, b) => b - a) }}` |
 
 ### `if:` conditionals
 
