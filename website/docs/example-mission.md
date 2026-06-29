@@ -13,6 +13,10 @@ The **mission workflow** (`examples/mission/mission.yaml`) is a production-ready
 
 It showcases nearly every plyflow feature: `foreach`, `loop`, `if`, structured output, per-step model overrides, `agent-sdk` mode, resume, and complex cross-phase output access.
 
+> The git and GitHub operations in this example are provided by the first-party
+> [`@plyflow/git` and `@plyflow/github` packs](./steps/plugin-packs.md) — the
+> workflow declares them in `plugins:` and invokes `step: git.*` / `step: github.*`.
+
 ## Quick start
 
 ```bash
