@@ -24,6 +24,7 @@ plyflow run <file> [options]
 |--------|-------------|
 | `--input <key=value>` | Set a workflow input. Repeat for multiple inputs. |
 | `--resume <runId>` | Resume a previous run from the first incomplete or changed step. |
+| `--dry-run` | Run in dry-run mode: side-effecting `sh` steps don't execute and return their configured `dryRun:` stub (or empty success). |
 | `--refresh` | Re-fetch a remote workflow, bypassing the local cache. |
 | `--yes`, `-y` | Skip the remote-workflow trust prompt. |
 

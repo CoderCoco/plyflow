@@ -23,6 +23,7 @@ interactive Ink/React TUI, and is also usable as a library.
 | Lint | `pnpm -r lint` (eslint) |
 | Run the CLI from source | `pnpm dev -- run <file.yaml> --input k=v` |
 | Add a changeset | `pnpm changeset` |
+| Dry-run (no shell) | `pnpm dev -- run <file.yaml> --dry-run` |
 
 ## Conventions (follow these)
 
@@ -31,7 +32,8 @@ interactive Ink/React TUI, and is also usable as a library.
   the ESM module resolution — omitting it breaks the build.
 - **TDD.** Write the failing test first, watch it fail, implement minimally, watch
   it pass, commit. Tests live beside source as `*.test.ts`; fixtures in a sibling
-  `__fixtures__/` directory.
+  `__fixtures__/` directory. Use `@plyflow/testing` (`fakeProvider`, `mockExec`) when writing
+  tests that run full workflows — these eliminate real network/shell calls.
 - **Inject side effects for testability.** Network/clock/filesystem-root
   dependencies are passed as optional params with real defaults
   (`fetchImpl = globalThis.fetch`, `now = () => Date.now()`, `cacheRoot = …`), so
@@ -67,6 +69,7 @@ This is a pnpm workspace monorepo. Source lives under `packages/`:
 - `packages/tui/src/` — Ink/React terminal UI.
 - `packages/meta/` — the `plyflow` meta-package that re-exports `@plyflow/core` and
   wires the `plyflow` bin; preserves the existing npm install path and library import.
+- `packages/testing/src/` — `@plyflow/testing`: `fakeProvider(rules)` (scripted `AIProvider`) and `mockExec(rules)` (scripted `ShellExec`) for testing workflows without network or shell; install as a dev dependency.
 - `plugins/` — reserved for first-party plugin packs (Spec B feature plan).
 - `examples/` — runnable workflows (`summarize.yaml`, `mission/`, `plugins/`,
   `widgets/`).

@@ -17,6 +17,9 @@ importers:
       '@plyflow/core':
         specifier: workspace:*
         version: link:packages/core
+      '@plyflow/testing':
+        specifier: workspace:*
+        version: link:packages/testing
       '@types/node':
         specifier: ^26.0.1
         version: 26.0.1
@@ -86,6 +89,12 @@ importers:
       '@plyflow/cli':
         specifier: workspace:*
         version: link:../cli
+      '@plyflow/core':
+        specifier: workspace:*
+        version: link:../core
+
+  packages/testing:
+    dependencies:
       '@plyflow/core':
         specifier: workspace:*
         version: link:../core

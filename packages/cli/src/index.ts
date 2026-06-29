@@ -29,6 +29,7 @@ export async function main(argv: string[]): Promise<void> {
       inputs,
       runId: args.resume,
       provider,
+      dryRun: args.dryRun,
       onEvent: (e) => logger.handle(e),
       prompt: async () => {
         throw new Error('interactive input is not available in non-TTY mode');
@@ -69,6 +70,7 @@ export async function main(argv: string[]): Promise<void> {
     inputs,
     runId: args.resume,
     provider,
+    dryRun: args.dryRun,
     onEvent: emit,
     prompt: (stepId, req) =>
       promptHandler ? promptHandler(stepId, req) : Promise.reject(new Error('prompt handler not ready')),

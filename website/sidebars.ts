@@ -65,6 +65,11 @@ const sidebars: SidebarsConfig = {
       label: 'Programmatic Usage',
     },
     {
+      type: 'doc',
+      id: 'testing',
+      label: 'Testing Workflows',
+    },
+    {
       type: 'category',
       label: 'Extensibility',
       items: [

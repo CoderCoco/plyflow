@@ -17,6 +17,7 @@ import { createRootScope, runSteps } from './exec.js';
 import { createLoader } from './module-loader.js';
 import { prepareEnv, type Exec } from './workflow-env.js';
 import { loadPlugins } from './plugins.js';
+import type { ShellExec } from './shell.js';
 
 export type EngineEvent =
   | { type: 'phase-start'; phase: string }
@@ -42,9 +43,11 @@ export interface RunOptions {
   useChain?: string[];
   /** Injectable exec for running npm commands in prepareEnv; defaults to real npm. Useful for tests. */
   exec?: Exec;
+  /** Injectable shell exec for `sh` steps; defaults to the real shell. Useful for tests. */
+  shellExec?: ShellExec;
 }
 
-export function buildDefaultRegistry(): StepRegistry {
+export function buildDefaultRegistry(shellExec?: ShellExec): StepRegistry {
   const reg = new StepRegistry();
   reg.register(runStep);
   reg.register(agentStep);
@@ -53,7 +56,7 @@ export function buildDefaultRegistry(): StepRegistry {
   reg.register(makeParallelStep(reg));
   reg.register(makeLoopStep());
   reg.register(makeForeachStep());
-  reg.register(makeShStep());
+  reg.register(makeShStep(shellExec));
   reg.register(makeUseStep(runWorkflow));
   return reg;
 }
@@ -81,7 +84,7 @@ export async function runWorkflow(
   // Clone the caller-provided registry so plugin registrations are isolated
   // per run and don't mutate the caller's shared registry.  If no registry
   // was provided, buildDefaultRegistry() already returns a fresh instance.
-  const registry = opts.registry ? opts.registry.clone() : buildDefaultRegistry();
+  const registry = opts.registry ? opts.registry.clone() : buildDefaultRegistry(opts.shellExec);
   // Build the loader from the env-resolved dir + provided set (merges
   // DEFAULT_PROVIDED with any plyflow.provided entries from package.json).
   const loader = createLoader({ baseDir: env.dir, provided: env.provided });

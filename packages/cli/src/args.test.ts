@@ -26,4 +26,12 @@ describe('parseArgs', () => {
     expect(a.yes).toBe(true);
     expect(parseArgs(['run', './wf.yaml', '-y']).yes).toBe(true);
   });
+
+  it('parses --dry-run', () => {
+    expect(parseArgs(['run', 'wf.yaml', '--dry-run']).dryRun).toBe(true);
+  });
+
+  it('defaults dryRun to false', () => {
+    expect(parseArgs(['run', 'wf.yaml']).dryRun).toBe(false);
+  });
 });
