@@ -1,0 +1,12 @@
+{
+  "name": "@plyflow/testing",
+  "version": "0.3.0",
+  "description": "Test helpers for plyflow workflows: fake AI provider and mock shell exec.",
+  "type": "module",
+  "engines": { "node": ">=24" },
+  "publishConfig": { "access": "public" },
+  "exports": { ".": { "@plyflow/source": "./src/index.ts", "default": "./dist/index.js" } },
+  "files": ["dist"],
+  "scripts": { "build": "tsdown", "test": "vitest run", "lint": "eslint src" },
+  "dependencies": { "@plyflow/core": "workspace:*" }
+}

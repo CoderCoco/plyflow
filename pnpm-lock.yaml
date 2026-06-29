@@ -90,6 +90,12 @@ importers:
         specifier: workspace:*
         version: link:../core
 
+  packages/testing:
+    dependencies:
+      '@plyflow/core':
+        specifier: workspace:*
+        version: link:../core
+
   packages/tui:
     dependencies:
       '@plyflow/core':
