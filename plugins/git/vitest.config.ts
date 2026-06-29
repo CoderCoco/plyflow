@@ -1,2 +1,5 @@
 import { defineConfig } from 'vitest/config';
-export default defineConfig({ test: { environment: 'node' } });
+export default defineConfig({
+  ssr: { resolve: { conditions: ['@plyflow/source'] } },
+  test: { environment: 'node' },
+});
