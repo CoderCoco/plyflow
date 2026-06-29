@@ -171,9 +171,9 @@ describe('B3: plugin loading via runWorkflow', () => {
     expect(res.outputs['e']).toBe('dedup');
   });
 
-  it('FIX3: deduplicates when env has bare name and wf has ./relative (same file, different raw string)', async () => {
-    // env.plugins = ['echo-plugin.ts'] (no ./)
-    // wf.plugins  = ['./echo-plugin.ts'] (with ./)
+  it('FIX3: deduplicates when package.json uses bare filename and YAML uses ./relative (cross-form, same absolute path)', async () => {
+    // env.plugins = ['echo-plugin.ts']   (from package.json, bare filename)
+    // wf.plugins  = ['./echo-plugin.ts'] (from YAML, relative form)
     // Both resolve to the same absolute path → loaded ONCE → no ambiguous error.
     await writeFile(
       join(dir, 'echo-plugin.ts'),
@@ -189,7 +189,7 @@ describe('B3: plugin loading via runWorkflow', () => {
       ].join('\n'),
     );
 
-    // package.json declares plugin WITHOUT leading './'
+    // package.json declares plugin WITHOUT leading './' (bare filename form)
     await writeFile(
       join(dir, 'package.json'),
       JSON.stringify({

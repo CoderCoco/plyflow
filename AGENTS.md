@@ -43,6 +43,7 @@ interactive Ink/React TUI, and is also usable as a library.
 - **Hand-rolled CLI parsing** in `packages/cli/src/args.ts` — no commander/yargs. Add flags
   there directly.
 - **Conventional Commits** for commit messages.
+- **Plugin specifiers:** workflow plugins can be referenced by package specifier (e.g. `@plyflow/git`) as well as relative file path; bare specifiers are resolved from the workflow dir's `node_modules`.
 
 ## Input types and expression stdlib
 
