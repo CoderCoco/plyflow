@@ -17,7 +17,7 @@ describe('git.push', () => {
   it('pushes the given branch with -u and returns the ref', async () => {
     const calls: string[] = [];
     const exec = mockExec({ 'git push': { stdout: '' } });
-    const traced = async (cmd: string, opts?: { cwd?: string }) => { calls.push(cmd); return exec(cmd, opts); };
+    const traced = async (cmd: string | string[], opts?: { cwd?: string }) => { calls.push(Array.isArray(cmd) ? cmd.join(' ') : cmd); return exec(cmd, opts); };
     const step = makeGitPushStep(traced);
     const res = await step.run(step.parse({ id: 'p', step: 'git.push' }), ctx({
       with: { path: '/wt', branch: 'claude/issue-1-x' },
@@ -34,6 +34,16 @@ describe('git.push', () => {
     const step = makeGitPushStep(exec);
     const res = await step.run(step.parse({ id: 'p', step: 'git.push' }), ctx({ with: { path: '/wt' } }));
     expect(res.output).toEqual({ pushed: true, ref: 'feature-x' });
+  });
+
+  it('throws on detached HEAD when no branch is given', async () => {
+    const exec = mockExec({
+      'git rev-parse --abbrev-ref HEAD': { stdout: 'HEAD\n' },
+    });
+    const step = makeGitPushStep(exec);
+    await expect(
+      step.run(step.parse({ id: 'p', step: 'git.push' }), ctx({ with: { path: '/wt' } })),
+    ).rejects.toThrow('detached HEAD');
   });
 
   it('under dryRun returns pushed:true without calling exec', async () => {

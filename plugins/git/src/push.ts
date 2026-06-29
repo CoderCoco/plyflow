@@ -1,6 +1,5 @@
 import { defaultShellExec, type ShellExec, type StepType, type StepContext, type StepResult } from '@plyflow/core';
 import { z } from 'zod';
-import { shJoin } from './lib/sh.js';
 import { PushOutput } from './schemas.js';
 
 const Input = z.object({
@@ -25,15 +24,18 @@ export function makeGitPushStep(exec: ShellExec = defaultShellExec): StepType {
 
       let ref = branch;
       if (!ref) {
-        const head = await exec(shJoin(['git', 'rev-parse', '--abbrev-ref', 'HEAD']), opts);
+        const head = await exec(['git', 'rev-parse', '--abbrev-ref', 'HEAD'], opts);
         if (head.code !== 0) throw new Error(`git rev-parse failed (code ${head.code}): ${head.stderr.trim()}`);
         ref = head.stdout.trim();
+        if (ref === 'HEAD') {
+          throw new Error('git.push: detached HEAD — provide the branch explicitly via the `branch` input');
+        }
       }
 
       const args = ['git', 'push'];
       if (setUpstream) args.push('-u');
       args.push('origin', ref);
-      const push = await exec(shJoin(args), opts);
+      const push = await exec(args, opts);
       if (push.code !== 0) throw new Error(`git push failed (code ${push.code}): ${push.stderr.trim()}`);
 
       return { output: PushOutput.parse({ pushed: true, ref }) };

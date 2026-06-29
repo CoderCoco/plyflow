@@ -20,7 +20,7 @@ describe('git.diff', () => {
       'git diff --name-only': { stdout: 'a.ts\nb.ts\n' },
       'git diff origin/main...HEAD': { stdout: 'diff --git a/a.ts b/a.ts\n' },
     });
-    const traced = async (cmd: string, opts?: { cwd?: string }) => { calls.push(cmd); return exec(cmd, opts); };
+    const traced = async (cmd: string | string[], opts?: { cwd?: string }) => { calls.push(Array.isArray(cmd) ? cmd.join(' ') : cmd); return exec(cmd, opts); };
     const step = makeGitDiffStep(traced);
     const res = await step.run(step.parse({ id: 'd', step: 'git.diff' }), ctx({ with: { path: '/wt' } }));
     expect(res.output).toEqual({ files: ['a.ts', 'b.ts'], patch: 'diff --git a/a.ts b/a.ts\n' });

@@ -22,14 +22,14 @@ describe('git.commit', () => {
       'git commit -m': { stdout: '' },
       'git rev-parse HEAD': { stdout: 'deadbeef\n' },
     });
-    const traced = async (cmd: string, opts?: { cwd?: string }) => { seen.push({ cmd, cwd: opts?.cwd }); return exec(cmd, opts); };
+    const traced = async (cmd: string | string[], opts?: { cwd?: string }) => { seen.push({ cmd: Array.isArray(cmd) ? cmd.join(' ') : cmd, cwd: opts?.cwd }); return exec(cmd, opts); };
     const step = makeGitCommitStep(traced);
     const res = await step.run(step.parse({ id: 'c', step: 'git.commit' }), ctx({
       with: { path: '/wt', message: 'feat: do it\n\nRefs #1' },
     }));
     expect(res.output).toEqual({ committed: true, sha: 'deadbeef' });
     expect(seen.every((s) => s.cwd === '/wt')).toBe(true);
-    expect(seen.some((s) => s.cmd.includes("git commit -m 'feat: do it"))).toBe(true);
+    expect(seen.some((s) => s.cmd.includes('git commit -m feat: do it'))).toBe(true);
   });
 
   it('returns committed:false on a clean tree without committing', async () => {

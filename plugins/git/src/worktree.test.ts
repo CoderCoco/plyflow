@@ -21,7 +21,7 @@ describe('git.worktree', () => {
       'git rev-parse --verify': { code: 1 }, // branch does not exist
       'git worktree add': { stdout: '' },
     });
-    const traced = async (cmd: string) => { calls.push(cmd); return exec(cmd); };
+    const traced = async (cmd: string | string[], opts?: { cwd?: string }) => { calls.push(Array.isArray(cmd) ? cmd.join(' ') : cmd); return exec(cmd, opts); };
     const step = makeGitWorktreeStep(traced);
     const res = await step.run(step.parse({ id: 'w', step: 'git.worktree' }), ctx({
       with: { issue: 12, slug: 'Fix the Thing!', base: 'main' },
@@ -35,12 +35,12 @@ describe('git.worktree', () => {
   });
 
   it('reuses an existing worktree (created:false) when the branch is already listed', async () => {
-    const exec = mockExec({ 'git worktree list': { stdout: 'abc123  /some/path  [claude/issue-12-fix-the-thing]\n' } });
+    const exec = mockExec({ 'git worktree list': { stdout: '/abs/wt/issue-12  abc1234  [claude/issue-12-fix-the-thing]\n' } });
     const step = makeGitWorktreeStep(exec);
     const res = await step.run(step.parse({ id: 'w', step: 'git.worktree' }), ctx({
       with: { issue: 12, slug: 'fix the thing' },
     }));
-    expect(res.output).toEqual({ path: '.claude/worktrees/issue-12-fix-the-thing', branch: 'claude/issue-12-fix-the-thing', created: false });
+    expect(res.output).toEqual({ path: '/abs/wt/issue-12', branch: 'claude/issue-12-fix-the-thing', created: false });
   });
 
   it('adds worktree for an existing local branch (no -b, no origin/)', async () => {
@@ -50,7 +50,7 @@ describe('git.worktree', () => {
       'git rev-parse --verify': { code: 0 },      // branch exists locally
       'git worktree add': { stdout: '' },
     });
-    const traced = async (cmd: string) => { calls.push(cmd); return exec(cmd); };
+    const traced = async (cmd: string | string[], opts?: { cwd?: string }) => { calls.push(Array.isArray(cmd) ? cmd.join(' ') : cmd); return exec(cmd, opts); };
     const step = makeGitWorktreeStep(traced);
     const res = await step.run(step.parse({ id: 'w', step: 'git.worktree' }), ctx({
       with: { issue: 12, slug: 'fix the thing', base: 'main' },

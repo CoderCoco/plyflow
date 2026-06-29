@@ -1,6 +1,5 @@
 import { defaultShellExec, type ShellExec, type StepType, type StepContext, type StepResult } from '@plyflow/core';
 import { z } from 'zod';
-import { shJoin } from './lib/sh.js';
 import { WorktreeOutput } from './schemas.js';
 
 const Input = z.object({
@@ -34,16 +33,18 @@ export function makeGitWorktreeStep(exec: ShellExec = defaultShellExec): StepTyp
         return { output: WorktreeOutput.parse({ path, branch, created: false }) };
       }
 
-      const list = await exec(shJoin(['git', 'worktree', 'list']));
+      const list = await exec(['git', 'worktree', 'list']);
       if (list.code === 0 && list.stdout.includes(`[${branch}]`)) {
-        return { output: WorktreeOutput.parse({ path, branch, created: false }) };
+        const line = list.stdout.split('\n').find((l) => l.includes(`[${branch}]`));
+        const existingPath = line ? line.split(/\s+/)[0]! : path;
+        return { output: WorktreeOutput.parse({ path: existingPath, branch, created: false }) };
       }
 
-      const verify = await exec(shJoin(['git', 'rev-parse', '--verify', branch]));
+      const verify = await exec(['git', 'rev-parse', '--verify', branch]);
       const add =
         verify.code === 0
-          ? await exec(shJoin(['git', 'worktree', 'add', path, branch]))
-          : await exec(shJoin(['git', 'worktree', 'add', path, '-b', branch, `origin/${base}`]));
+          ? await exec(['git', 'worktree', 'add', path, branch])
+          : await exec(['git', 'worktree', 'add', path, '-b', branch, `origin/${base}`]);
       if (add.code !== 0) {
         throw new Error(`git worktree add failed (code ${add.code}): ${add.stderr.trim() || add.stdout.trim()}`);
       }
