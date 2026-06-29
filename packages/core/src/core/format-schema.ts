@@ -1,11 +1,46 @@
 import { z } from 'zod';
 import type { WorkflowFile, AgentConfig } from './types.js';
 
-const inputDef = z.object({
-  type: z.enum(['string', 'number', 'boolean', 'object', 'json', 'array']),
-  required: z.boolean().optional(),
-  default: z.unknown().optional(),
-});
+const inputDef = z
+  .object({
+    type: z.enum(['string', 'number', 'boolean', 'object', 'json', 'array']),
+    required: z.boolean().optional(),
+    default: z.unknown().optional(),
+  })
+  .superRefine((val, ctx) => {
+    if (val.default === undefined) return;
+    const d = val.default;
+    switch (val.type) {
+      case 'string':
+        if (typeof d !== 'string') {
+          ctx.addIssue({ code: 'custom', path: ['default'], message: 'default must be a string when type is "string"' });
+        }
+        break;
+      case 'number':
+        if (typeof d !== 'number') {
+          ctx.addIssue({ code: 'custom', path: ['default'], message: 'default must be a number when type is "number"' });
+        }
+        break;
+      case 'boolean':
+        if (typeof d !== 'boolean') {
+          ctx.addIssue({ code: 'custom', path: ['default'], message: 'default must be a boolean when type is "boolean"' });
+        }
+        break;
+      case 'array':
+        if (!Array.isArray(d)) {
+          ctx.addIssue({ code: 'custom', path: ['default'], message: 'default must be an array when type is "array"' });
+        }
+        break;
+      case 'object':
+        if (typeof d !== 'object' || d === null || Array.isArray(d)) {
+          ctx.addIssue({ code: 'custom', path: ['default'], message: 'default must be a plain object when type is "object"' });
+        }
+        break;
+      case 'json':
+        // json accepts any JSON-serialisable value — no additional constraint
+        break;
+    }
+  });
 
 const inputStepDef = z.object({
   type: z.enum(['confirm', 'text', 'select']),
