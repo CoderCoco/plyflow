@@ -13,6 +13,8 @@ jobs:
         node-version: ['24.x']
     steps:
       - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
       - uses: pnpm/action-setup@v5
         with:
           version: 11.9.0
