@@ -202,7 +202,7 @@ ${{ steps.verify && steps.verify.output ? steps.verify.output.verdict : '' }}
 
 ### Expression helpers
 
-The following helper functions are available as bare identifiers in every `${{ }}` expression. If a workflow input or binding has the same name as a helper, the binding wins and the helper is shadowed.
+The following helper functions are available as bare identifiers in every `${{ }}` expression. If a binding has the same name as a helper, the binding wins and the helper is shadowed. Workflow inputs are accessed via `inputs.*` and never collide with bare helper identifiers.
 
 | Helper | Signature | Example |
 |--------|-----------|---------|
