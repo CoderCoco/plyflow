@@ -22,7 +22,7 @@
 
 ## File Structure
 
-```
+```text
 packages/core/src/core/
   module-loader.ts        # MODIFY: import() resolves bare specifiers via Node resolution from baseDir
   module-loader.test.ts   # MODIFY/CREATE: bare-specifier resolution + relative unchanged + missing throws
