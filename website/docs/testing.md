@@ -4,7 +4,7 @@ sidebar_position: 10
 
 # Testing Workflows
 
-plyflow ships a dedicated `@plyflow/testing` package with fakes for the AI provider and shell executor, so you can run real workflow files in unit tests without touching the network or a real shell.
+plyflow ships a dedicated `@plyflow/testing` package with fakes for the AI provider and the `sh`-step shell executor. These two fakes cover the provider and shell surfaces, letting you run real workflow files in unit tests without hitting the network or spawning a real shell for those surfaces. Other injectable exec paths — for example, `prepareEnv` via `RunOptions.exec` — are separate injection points not covered by `fakeProvider`/`mockExec` and must be stubbed independently if your workflow uses them.
 
 ## Installation
 
