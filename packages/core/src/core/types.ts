@@ -1,6 +1,7 @@
 export interface WorkflowFile {
   name: string;
   inputs?: Record<string, InputDef>;
+  outputs?: Record<string, string>;
   phases: Phase[];
   /** Paths to plugin modules (relative to the workflow dir) to load before executing. */
   plugins?: string[];
@@ -40,6 +41,8 @@ export interface StepDef {
   widget?: string;
   /** Registered name of a custom step type (plugin) to invoke. */
   step?: string;
+  /** Path to a sub-workflow file to run (the `use:` step). */
+  use?: string;
   /** Default value returned when the step runs in non-TTY mode (no prompt available). */
   default?: unknown;
   /** Shell command to execute (the `sh:` step type). Expression-resolved. */
