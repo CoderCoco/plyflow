@@ -39,6 +39,32 @@ Alternatively, declare plugins in the workflow directory's `package.json`:
 
 Both sources are merged and deduplicated before loading.
 
+### By package name (bare specifier)
+
+Plugins can also be declared by **package name** — a bare specifier such as `@plyflow/git` or `shout-plugin` — in either `plugins:` in the YAML or `plyflow.plugins` in `package.json`:
+
+```yaml
+plugins:
+  - @plyflow/git      # bare package specifier — resolved from node_modules
+  - ./steps/local.ts  # relative path — loaded as a local file
+```
+
+```json
+{
+  "name": "my-workflow",
+  "dependencies": {
+    "@plyflow/git": "^1.0.0"
+  },
+  "plyflow": {
+    "plugins": ["@plyflow/git"]
+  }
+}
+```
+
+When a plugin entry is a bare package specifier (no leading `./` or `../`, and no `.ts`/`.js` extension), plyflow resolves it from the workflow directory's `node_modules`. Declare the package in the workflow's `package.json` `dependencies` so it is installed before the workflow runs.
+
+A plugin reference that starts with `./` or `../`, ends in `.ts`/`.js`/`.tsx`/`.jsx`, or is an absolute path is always treated as a local file path.
+
 ## Writing a plugin
 
 A plugin module `export default`s either a **StepType object** or a **register function**.
