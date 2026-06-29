@@ -6,6 +6,7 @@ import { createLoader } from './module-loader.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const fixturesDir = resolve(__dirname, '__fixtures__');
+const here = __dirname;
 
 describe('createLoader', () => {
   it('loads a module that imports zod in the same realm (instanceof holds)', async () => {
@@ -53,5 +54,20 @@ describe('createLoader', () => {
     const m = await loader.import('./a-imports-b.ts');
     // a-imports-b exports: result = 'a-got-from-b'
     expect((m as { result?: unknown }).result).toBe('a-got-from-b');
+  });
+});
+
+describe('createLoader bare-specifier resolution', () => {
+  it('resolves a bare specifier from baseDir node_modules', async () => {
+    const loader = createLoader({ baseDir: here });
+    const mod = (await loader.import('yaml')) as { parse?: unknown };
+    expect(typeof mod.parse).toBe('function');
+  });
+
+  it('throws a clear error for a bare specifier that is not installed', async () => {
+    const loader = createLoader({ baseDir: here });
+    await expect(loader.import('@plyflow/definitely-not-installed')).rejects.toThrow(
+      /@plyflow\/definitely-not-installed/,
+    );
   });
 });

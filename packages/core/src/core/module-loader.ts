@@ -23,6 +23,7 @@
  */
 
 import { createJiti } from 'jiti';
+import { createRequire } from 'node:module';
 import { resolve as resolvePath, isAbsolute } from 'node:path';
 
 /** Specifiers that plyflow provides to loaded modules by default. */
@@ -75,6 +76,10 @@ async function tryImportProvided(specifier: string): Promise<unknown | undefined
  * `createLoader` itself remains synchronous while the async virtualModules
  * population happens once before the first load.
  */
+function isRelative(p: string): boolean {
+  return p.startsWith('./') || p.startsWith('../');
+}
+
 export function createLoader(opts: LoaderOptions): ModuleLoader {
   const provided = opts.provided ?? DEFAULT_PROVIDED;
 
@@ -115,7 +120,22 @@ export function createLoader(opts: LoaderOptions): ModuleLoader {
 
   return {
     async import(path: string): Promise<unknown> {
-      const abs = isAbsolute(path) ? path : resolvePath(opts.baseDir, path);
+      let abs: string;
+      if (isAbsolute(path) || isRelative(path)) {
+        abs = isAbsolute(path) ? path : resolvePath(opts.baseDir, path);
+      } else {
+        // Bare specifier (pkg | @scope/pkg | @scope/pkg/subpath): resolve from the
+        // workflow dir's node_modules, where the workflow's deps are installed.
+        const req = createRequire(resolvePath(opts.baseDir, 'noop.js'));
+        try {
+          abs = req.resolve(path);
+        } catch {
+          throw new Error(
+            `Cannot resolve module "${path}" from "${opts.baseDir}". ` +
+              `Declare it in the workflow's package.json dependencies so it is installed.`,
+          );
+        }
+      }
       const load = await ensureJiti();
       return load(abs);
     },
