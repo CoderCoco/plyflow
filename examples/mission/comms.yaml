@@ -5,6 +5,10 @@ inputs:
   worktree_path: { type: string, required: false }
   models: { type: string, required: false }
 
+plugins:
+  - '@plyflow/git'
+  - '@plyflow/github'
+
 phases:
   - name: Fetch
     steps:
@@ -15,7 +19,7 @@ phases:
           fableAvailable: true
 
       - id: fetch
-        uses: ./lib/gh-comments.ts
+        step: github.comments
         with:
           repo: "${{ inputs.repo }}"
           pr: "${{ inputs.pr }}"
@@ -82,24 +86,24 @@ phases:
           - id: commit
             needs: [verify]
             if: "${{ steps.verify.output.verdict == 'PASS' }}"
-            uses: ./lib/git-commit.ts
+            step: git.commit
             with:
-              worktree_path: "${{ inputs.worktree_path }}"
+              path: "${{ inputs.worktree_path }}"
               message: "fix: address review comment ${{ comment.id }}\n\nRefs PR #${{ inputs.pr }}"
 
   - name: Downlink
     steps:
       - id: push
         needs: [fetch]
-        uses: ./lib/git-push.ts
+        step: git.push
         with:
-          worktree_path: "${{ inputs.worktree_path }}"
+          path: "${{ inputs.worktree_path }}"
           branch: "${{ steps.fetch.output.headRefName }}"
 
       - id: notify
         needs: [push]
-        uses: ./lib/post-comment.ts
+        step: github.review
         with:
           repo: "${{ inputs.repo }}"
           pr: "${{ inputs.pr }}"
-          body: "Mission Control: comms round complete. Actionable comments addressed and pushed."
+          comment: "Mission Control: comms round complete. Actionable comments addressed and pushed."
