@@ -35,7 +35,7 @@ export function makeGitWorktreeStep(exec: ShellExec = defaultShellExec): StepTyp
       }
 
       const list = await exec(shJoin(['git', 'worktree', 'list']));
-      if (list.code === 0 && list.stdout.includes(branch)) {
+      if (list.code === 0 && list.stdout.includes(`[${branch}]`)) {
         return { output: WorktreeOutput.parse({ path, branch, created: false }) };
       }
 

@@ -35,12 +35,35 @@ describe('git.worktree', () => {
   });
 
   it('reuses an existing worktree (created:false) when the branch is already listed', async () => {
-    const exec = mockExec({ 'git worktree list': { stdout: 'abc /path claude/issue-12-fix-the-thing\n' } });
+    const exec = mockExec({ 'git worktree list': { stdout: 'abc123  /some/path  [claude/issue-12-fix-the-thing]\n' } });
     const step = makeGitWorktreeStep(exec);
     const res = await step.run(step.parse({ id: 'w', step: 'git.worktree' }), ctx({
       with: { issue: 12, slug: 'fix the thing' },
     }));
-    expect(res.output).toMatchObject({ created: false, branch: 'claude/issue-12-fix-the-thing' });
+    expect(res.output).toEqual({ path: '.claude/worktrees/issue-12-fix-the-thing', branch: 'claude/issue-12-fix-the-thing', created: false });
+  });
+
+  it('adds worktree for an existing local branch (no -b, no origin/)', async () => {
+    const calls: string[] = [];
+    const exec = mockExec({
+      'git worktree list': { stdout: '' },        // branch not already checked out
+      'git rev-parse --verify': { code: 0 },      // branch exists locally
+      'git worktree add': { stdout: '' },
+    });
+    const traced = async (cmd: string) => { calls.push(cmd); return exec(cmd); };
+    const step = makeGitWorktreeStep(traced);
+    const res = await step.run(step.parse({ id: 'w', step: 'git.worktree' }), ctx({
+      with: { issue: 12, slug: 'fix the thing', base: 'main' },
+    }));
+    expect(res.output).toEqual({
+      path: '.claude/worktrees/issue-12-fix-the-thing',
+      branch: 'claude/issue-12-fix-the-thing',
+      created: true,
+    });
+    const addCmd = calls.find((c) => c.includes('worktree add'));
+    expect(addCmd).toBeDefined();
+    expect(addCmd).not.toContain('-b');
+    expect(addCmd).not.toContain('origin/');
   });
 
   it('under dryRun returns synthetic output without calling exec', async () => {
