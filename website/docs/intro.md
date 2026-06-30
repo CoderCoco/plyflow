@@ -22,7 +22,10 @@ npm install -g plyflow
 
 # Available today — clone and link:
 git clone https://github.com/CoderCoco/plyflow.git
-cd plyflow && pnpm install && pnpm -r build && npm link
+cd plyflow
+pnpm install
+pnpm -r build
+cd packages/meta && npm link   # makes `plyflow` global
 ```
 
 Then create an agent and a workflow, and run it:
