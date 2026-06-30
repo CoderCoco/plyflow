@@ -160,17 +160,21 @@ export async function runSteps(
   return scope.outputs;
 
   async function runOneStep(step: StepDef): Promise<void> {
+    const instanceId = `${scope.journalPath}/${step.id}`;
+    const parentId = scope.journalPath;
+    const type = scope.registry.select(step);
+    const kind = type.name as import('./engine.js').StepKind;
+
     // Evaluate the optional `if:` guard. If present and resolves falsy, skip.
     if (step.if !== undefined) {
       const guard = resolveExpr(step.if, exprCtx());
       if (!guard) {
         scope.outputs[step.id] = null;
-        scope.emit({ type: 'step-skipped', stepId: step.id });
+        scope.emit({ type: 'step-skipped', stepId: step.id, instanceId });
         return;
       }
     }
 
-    const type = scope.registry.select(step);
     const ctx = exprCtx();
     const resolvedWith = resolveExpr(step.with ?? {}, ctx) as Record<string, unknown>;
     const resolvedPrompt = step.prompt ? (resolveExpr(step.prompt, ctx) as string) : undefined;
@@ -200,19 +204,19 @@ export async function runSteps(
       use: step.use,
     });
 
-    const journalKey = `${scope.journalPath}/${step.id}`;
+    const journalKey = instanceId;
     const cached = scope.journal.get(journalKey);
     const upstreamDirty = (step.needs ?? []).some((n) =>
       scope.dirty.has(`${scope.journalPath}/${n}`),
     );
     if (cached && cached.status === 'completed' && cached.hash === hash && !upstreamDirty) {
       scope.outputs[step.id] = cached.output;
-      scope.emit({ type: 'step-done', stepId: step.id, output: cached.output, cached: true });
+      scope.emit({ type: 'step-done', stepId: step.id, instanceId, output: cached.output, cached: true });
       return;
     }
     scope.dirty.add(journalKey);
 
-    scope.emit({ type: 'step-start', stepId: step.id });
+    scope.emit({ type: 'step-start', stepId: step.id, instanceId, parentId, kind });
     const startedAt = Date.now();
     const stepCtx: StepContext = {
       inputs: scope.inputs,
@@ -238,7 +242,7 @@ export async function runSteps(
       resolve: (value: unknown) => resolveExpr(value, exprCtx()),
       emit: (ev) => {
         if (ev.type === 'log') {
-          scope.emit({ type: 'step-log', stepId: step.id, message: ev.message });
+          scope.emit({ type: 'step-log', stepId: step.id, instanceId, message: ev.message });
         }
       },
       prompt: (req) => scope.prompt(step.id, req),
@@ -263,7 +267,7 @@ export async function runSteps(
         startedAt,
         endedAt: Date.now(),
       });
-      scope.emit({ type: 'step-done', stepId: step.id, output: res.output, cached: false });
+      scope.emit({ type: 'step-done', stepId: step.id, instanceId, output: res.output, cached: false });
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       await scope.journal.record({
@@ -274,7 +278,7 @@ export async function runSteps(
         startedAt,
         endedAt: Date.now(),
       });
-      scope.emit({ type: 'step-error', stepId: step.id, error: message });
+      scope.emit({ type: 'step-error', stepId: step.id, instanceId, error: message });
       if (!step.continueOnError) throw err;
     }
   }
