@@ -10,7 +10,7 @@ An agent is a Markdown file with YAML frontmatter. The frontmatter configures th
 
 ```markdown
 ---
-model: claude-sonnet-4-5
+model: claude-sonnet-4-6
 provider: claude
 mode: api
 temperature: 0.3

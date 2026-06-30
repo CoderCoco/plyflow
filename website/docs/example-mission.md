@@ -29,7 +29,7 @@ plyflow run examples/mission/mission.yaml \
 plyflow run examples/mission/mission.yaml \
   --input issue=123 \
   --input repo=owner/repo-name \
-  --input models=director=claude-opus-4-5,inspector=claude-opus-4-5
+  --input models=director=claude-opus-4-8,inspector=claude-opus-4-8
 ```
 
 ## Inputs

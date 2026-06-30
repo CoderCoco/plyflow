@@ -10,10 +10,19 @@ AI provider.
 
 ## Install
 
+plyflow is a pnpm workspace monorepo and requires **Node ≥24** and **pnpm**
+(`npm install -g pnpm`). A published `plyflow` npm package is on the way; for now,
+clone and build from source:
+
 ```bash
-npm install
-npm run build
+git clone https://github.com/CoderCoco/plyflow.git
+cd plyflow
+pnpm install      # install workspace dependencies
+pnpm -r build     # build every package under packages/
 ```
+
+Run the CLI from the repo with `pnpm dev -- run <file.yaml>`, or link it globally
+with `cd packages/meta && npm link` so the `plyflow` command works anywhere.
 
 ## Run
 
@@ -34,8 +43,14 @@ values. A step has exactly one type key:
 
 - `run` / `uses` — inline JS or an external `.ts` module (libraries importable)
 - `agent` — an AI agent (`.md` file); add `output:` for a Zod schema → JSON output
+- `sh` — run a shell command (`json:` parses stdout)
 - `input` — pause and ask the user (`confirm` | `text` | `select`)
-- `parallel` — explicit fan-out
+- `parallel` — explicit fan-out over a fixed list of steps
+- `foreach` — dynamic fan-out over a runtime array
+- `loop` — repeat steps until a condition (`until:`) or `maxIterations`
+- `use` — call another workflow file as a sub-step
+- `widget` — mount a custom Ink/React component for interactive input
+- `step` — invoke a registered custom step type (plugin)
 
 ## Agent format
 
