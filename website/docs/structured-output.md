@@ -102,7 +102,7 @@ For `api` mode, the tool-use mechanism forces structured output without needing 
 
 ```markdown
 ---
-model: claude-sonnet-4-5
+model: claude-sonnet-4-6
 mode: api
 ---
 

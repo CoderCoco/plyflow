@@ -13,22 +13,45 @@ plyflow is "GitHub Actions for AI agents": workflows are DAGs of typed steps, AI
 
 ## 30-second quick start
 
+Install the CLI. A published npm package is on the way; until then, clone and build
+(see [Getting Started](./getting-started.md) for the full setup):
+
 ```bash
+# Coming soon — published package:
 npm install -g plyflow
+
+# Available today — clone and link:
+git clone https://github.com/CoderCoco/plyflow.git
+cd plyflow
+pnpm install
+pnpm -r build
+cd packages/meta && npm link   # makes `plyflow` global
+```
+
+Then create an agent and a workflow, and run it:
+
+```bash
 export ANTHROPIC_API_KEY=sk-ant-…
+
+cat > summarizer.md << 'EOF'
+---
+model: claude-opus-4-8
+provider: claude
+mode: api
+---
+You are a precise summarizer. Reply with a single sentence.
+EOF
 
 cat > summarize.yaml << 'EOF'
 name: Summarize
 inputs:
-  text:
-    required: true
+  text: { type: string, required: true }
 phases:
   - name: Main
     steps:
       - id: summary
         agent: ./summarizer.md
-        with:
-          prompt: ${{ inputs.text }}
+        prompt: ${{ inputs.text }}
 EOF
 
 plyflow run summarize.yaml --input text="The quick brown fox jumps over the lazy dog."
@@ -59,13 +82,16 @@ plyflow run summarize.yaml --input text="The quick brown fox jumps over the lazy
 workflow.yaml
   └── phases (sequential)
         └── steps (parallel, constrained by needs:)
-              ├── run:     Inline TypeScript / external .ts module
-              ├── agent:   AI call → text or structured JSON output
-              ├── input:   Pause for human input (confirm / text / select)
-              ├── foreach: Dynamic fan-out over an array
-              ├── loop:    Repeat until a condition is met
-              ├── widget:  Custom Ink/React terminal UI component
-              └── step:    Custom plugin step type
+              ├── run / uses: Inline TypeScript / external .ts module
+              ├── agent:    AI call → text or structured JSON output
+              ├── sh:       Run a shell command
+              ├── input:    Pause for human input (confirm / text / select)
+              ├── parallel: Explicit fan-out over a fixed step list
+              ├── foreach:  Dynamic fan-out over an array
+              ├── loop:     Repeat until a condition is met
+              ├── use:      Call another workflow as a sub-step
+              ├── widget:   Custom Ink/React terminal UI component
+              └── step:     Custom plugin step type
 ```
 
 | Concept | Description |
@@ -84,14 +110,15 @@ workflow.yaml
 ### Core concepts
 - [Getting Started](./getting-started.md) — install, write your first workflow, run it
 - [Workflow Files](./workflow-files.md) — full YAML reference (inputs, phases, expressions)
-- [Step Types](./steps/overview.md) — `run`, `agent`, `input`, `foreach`, `loop`, `widget`, `step`
+- [Step Types](./steps/overview.md) — `run`/`uses`, `agent`, `sh`, `input`, `parallel`, `foreach`, `loop`, `use`, `widget`, `step`
 - [Agents & Providers](./agents-providers.md) — Markdown agent files, Claude provider modes
 - [Structured Output](./structured-output.md) — Zod schemas → forced JSON output from agents
 - [Resume & Journaling](./resume-journaling.md) — how journaling works, `--resume` flag
 
 ### Reference & tools
 - [CLI Reference](./cli-reference.md) — all `plyflow` commands and flags
-- [Programmatic Usage](./programmatic-usage.md) — use plyflow as a Node.js library, testing with `FakeProvider`
+- [Programmatic Usage](./programmatic-usage.md) — use plyflow as a Node.js library
+- [Testing Workflows](./testing.md) — `@plyflow/testing`: `fakeProvider` and `mockExec`
 
 ### Extensibility
 - [Custom Widgets](./extensibility/widgets.md) — Ink/React terminal UI components
@@ -114,4 +141,4 @@ workflow.yaml
 
 ---
 
-plyflow is at **v0.3**. The core engine, all step types, the Claude provider (api / cli / agent-sdk modes), structured output, resume, widgets, and plugins are implemented and tested.
+plyflow is at **v0.3**. The core engine, all step types, the Claude provider (api / cli / agent-sdk modes), structured output, resume, widgets, plugins (including the first-party [`@plyflow/git` and `@plyflow/github` packs](./steps/plugin-packs.md)), running [workflows from GitHub](./remote-workflows.md), and the [testing framework](./testing.md) are implemented and tested.

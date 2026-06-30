@@ -22,7 +22,7 @@ An agent file is a Markdown document with YAML frontmatter:
 
 ```markdown
 ---
-model: claude-opus-4-5
+model: claude-opus-4-8
 provider: claude
 mode: api
 temperature: 0.2
@@ -36,7 +36,7 @@ Always respond using the required structured output format.
 
 | Frontmatter field | Description |
 |-------------------|-------------|
-| `model` | Model ID (e.g., `claude-opus-4-5`, `claude-sonnet-4-5`) |
+| `model` | Model ID (e.g., `claude-opus-4-8`, `claude-sonnet-4-6`) |
 | `provider` | Provider name (currently: `claude`) |
 | `mode` | Execution mode: `api`, `cli`, or `agent-sdk` |
 | `temperature` | Sampling temperature (0.0–1.0) |

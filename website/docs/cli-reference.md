@@ -51,7 +51,7 @@ plyflow run ./long-workflow.yaml --input topic=AI --resume abc123def456
 # Override per-role models (mission workflow)
 plyflow run ./examples/mission/mission.yaml \
   --input issue=42 \
-  --input models=director=claude-opus-4-5,inspector=claude-opus-4-5
+  --input models=director=claude-opus-4-8,inspector=claude-opus-4-8
 
 # Run a workflow directly from GitHub (shorthand)
 plyflow run github:org/repo/examples/wf.yaml@v1.0.0

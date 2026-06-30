@@ -7,28 +7,38 @@ sidebar_position: 2
 ## Prerequisites
 
 - **Node.js 24+** (ESM project — Node 24 or later)
-- **npm** (comes with Node)
+- **pnpm** — the repo is a pnpm workspace monorepo (`npm install -g pnpm`)
 - **ANTHROPIC_API_KEY** — required for the default Claude provider in `api` mode
 
 ## Install
 
-Clone the repo and build:
+A published npm package (`npm install -g plyflow`) is on the way. Until then, clone
+the repo and build it from source:
 
 ```bash
 git clone https://github.com/CoderCoco/plyflow.git
 cd plyflow
-npm install
-npm run build
+pnpm install
+pnpm -r build
 ```
 
-This compiles the TypeScript source (`src/`) to JavaScript and makes the `plyflow` CLI available via `npx` or `node dist/cli/index.js`.
+This builds every workspace package under `packages/` (the engine, CLI, TUI, and
+testing helpers). The `plyflow` CLI lives in the `plyflow` meta-package
+(`packages/meta`). To run it from the repo without installing globally:
+
+```bash
+pnpm dev -- run <file.yaml> --input k=v
+```
 
 :::tip Running globally
-After building, you can link the CLI so `plyflow` works from anywhere:
+To make `plyflow` available from anywhere, link the meta-package after building:
 ```bash
-npm link
+cd packages/meta && npm link
 ```
 :::
+
+The examples below use a bare `plyflow` command, assuming you've linked it. If you
+haven't, substitute `pnpm dev -- run …` from the repo root.
 
 ## Your first workflow
 

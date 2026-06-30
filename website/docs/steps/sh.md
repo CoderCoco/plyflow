@@ -105,8 +105,8 @@ This integrates uniformly with the standard `continueOnError` and `retry` step f
 - id: flaky
   sh: ./scripts/network-op.sh
   retry:
-    maxAttempts: 3
-    delay: 2000
+    max: 3          # retry up to 3 times after the first attempt
+    backoff: 2000   # optional: milliseconds to wait between attempts
 ```
 
 ## Accessing output in later steps

@@ -66,8 +66,9 @@ phases:
 
 ```yaml
 - id: confirm
-  input: confirm
-  message: "Proceed with deployment?"
+  input:
+    type: confirm
+    message: "Proceed with deployment?"
   default: true     # returned automatically when not a TTY
 ```
 
