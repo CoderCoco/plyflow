@@ -8,7 +8,7 @@ export interface RunNav {
   scrollOffset: number;
 }
 
-export function useRunNav(model: RunModel): RunNav {
+export function useRunNav(model: RunModel, opts?: { active?: boolean }): RunNav {
   const [cursorId, setCursorId] = useState<string | null>(null);
   const [focus, setFocus] = useState<'selector' | 'detail'>('selector');
   const [scrollOffset, setScrollOffset] = useState(0);
@@ -49,7 +49,7 @@ export function useRunNav(model: RunModel): RunNav {
       if (key.upArrow) setScrollOffset((s) => s + 1);
       else if (key.downArrow) setScrollOffset((s) => Math.max(0, s - 1));
     }
-  });
+  }, { isActive: opts?.active ?? true });
 
   return { cursorId: effectiveCursor, focus, scrollOffset };
 }

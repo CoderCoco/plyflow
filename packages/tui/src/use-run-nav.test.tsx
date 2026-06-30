@@ -12,8 +12,8 @@ const model = ([
   { type: 'step-start', stepId: 'b', instanceId: 'phase:P/b', parentId: 'phase:P', kind: 'agent' },
 ] as EngineEvent[]).reduce(applyEvent, createRunModel());
 
-function Harness(): React.ReactElement {
-  const nav = useRunNav(model);
+function Harness({ active }: { active?: boolean } = {}): React.ReactElement {
+  const nav = useRunNav(model, active !== undefined ? { active } : undefined);
   return <Text>{`${nav.focus}:${nav.cursorId}:${nav.scrollOffset}`}</Text>;
 }
 
@@ -72,6 +72,15 @@ describe('useRunNav', () => {
     // ESC alone is held as "pending" by ink for ~20ms before flushing.
     stdin.write(ESC);
     await new Promise((r) => setTimeout(r, 50));
+    expect(lastFrame()).toBe('selector:phase:P/a:0');
+  });
+
+  it('does not move cursor when active=false (modal focus capture)', async () => {
+    // When a modal is open, nav input must be inert — arrow keys must not move cursor.
+    const { stdin, lastFrame } = render(<Harness active={false} />);
+    stdin.write(ARROW_DOWN);
+    await new Promise((r) => setTimeout(r, 10));
+    // Cursor stays on the first item (phase:P/a); it did NOT advance to phase:P/b.
     expect(lastFrame()).toBe('selector:phase:P/a:0');
   });
 });

@@ -1,71 +1,60 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useReducer, useState } from 'react';
 import { Box, useApp } from 'ink';
-import { ProgressTree, type PhaseView, type StepView } from './ProgressTree.js';
-import { Prompt } from './prompts.js';
-import { WidgetHost } from './WidgetHost.js';
-import type { EngineEvent } from '@plyflow/core';
-import type { UiRequest, PromptRequest } from '@plyflow/core';
+import { RunView } from './RunView.js';
+import { useRunNav } from './use-run-nav.js';
+import { useAltscreen } from './use-altscreen.js';
+import { QuestionModal, type PendingUi } from './QuestionModal.js';
+import { applyEvent, createRunModel, type RunModel } from './run-model.js';
+import type { EngineEvent, UiRequest } from '@plyflow/core';
 import type { WorkflowFile } from '@plyflow/core';
-
-interface PendingUi {
-  stepId: string;
-  request: UiRequest;
-  resolve: (value: unknown) => void;
-}
 
 export interface AppProps {
   workflow: WorkflowFile;
   events: AsyncIterable<EngineEvent>;
   registerPrompt: (handler: (stepId: string, req: UiRequest) => Promise<unknown>) => void;
   onDone: () => void;
+  /** Injectable terminal output stream; defaults to process.stdout. Pass a fake in tests. */
+  out?: Parameters<typeof useAltscreen>[0];
 }
 
-function initialPhases(wf: WorkflowFile): PhaseView[] {
-  return wf.phases.map((p) => ({
-    name: p.name,
-    steps: p.steps.map<StepView>((s) => ({ id: s.id, status: 'pending' })),
-  }));
-}
-
-export function App({ workflow, events, registerPrompt, onDone }: AppProps): React.ReactElement {
+export function App({ events, registerPrompt, onDone, out }: AppProps): React.ReactElement {
   const { exit } = useApp();
-  const [phases, setPhases] = useState<PhaseView[]>(() => initialPhases(workflow));
-  const [pending, setPending] = useState<PendingUi | null>(null);
+  const { rows, columns } = useAltscreen(out);
+  const [model, dispatch] = useReducer(applyEvent, undefined, createRunModel) as [RunModel, (e: EngineEvent) => void];
+  const [queue, setQueue] = useState<PendingUi[]>([]);
 
-  const setStatus = (id: string, patch: Partial<StepView>) =>
-    setPhases((prev) =>
-      prev.map((ph) => ({ ...ph, steps: ph.steps.map((s) => (s.id === id ? { ...s, ...patch } : s)) })),
-    );
+  const pending = queue[0] ?? null;
+
+  const nav = useRunNav(model, { active: !pending });
 
   useEffect(() => {
     registerPrompt(
       (stepId, request) =>
-        new Promise((resolve) => setPending({ stepId, request, resolve: (v) => { setPending(null); resolve(v); } })),
+        new Promise((resolve) => {
+          const entry: PendingUi = {
+            stepId,
+            request,
+            resolve: (v) => {
+              setQueue((q) => q.filter((e) => e !== entry));
+              resolve(v);
+            },
+          };
+          setQueue((q) => [...q, entry]);
+        }),
     );
     (async () => {
-      for await (const e of events) {
-        if (e.type === 'step-start') setStatus(e.stepId, { status: 'running' });
-        else if (e.type === 'step-done') setStatus(e.stepId, { status: 'done', cached: e.cached });
-        else if (e.type === 'step-error') setStatus(e.stepId, { status: 'error' });
-      }
+      for await (const e of events) dispatch(e);
       onDone();
-      exit();
+      // Defer exit by one macrotask so React can flush the final dispatch
+      // before Ink tears down the render tree.
+      setTimeout(exit, 0);
     })();
   }, []);
 
-  function renderPending(p: PendingUi): React.ReactElement | null {
-    if (p.request.kind === 'prompt') {
-      // Cast is safe: PromptRequest is exactly the prompt-kind of UiRequest.
-      return <Prompt request={p.request as PromptRequest} onResolve={p.resolve} />;
-    }
-    // widget kind: delegate to WidgetHost which loads the component asynchronously.
-    return <WidgetHost request={p.request} onResolve={p.resolve} />;
-  }
-
   return (
-    <Box flexDirection="column">
-      <ProgressTree phases={phases} />
-      {pending && renderPending(pending)}
+    <Box flexDirection="column" height={rows} width={columns}>
+      <RunView model={model} cursorId={nav.cursorId} focus={nav.focus} scrollOffset={nav.scrollOffset} width={columns} />
+      {pending && <QuestionModal pending={pending} />}
     </Box>
   );
 }
