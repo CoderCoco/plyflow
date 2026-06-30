@@ -177,12 +177,12 @@ describe('mission.yaml', () => {
     expect(stepIds).toContain('pr');
   });
 
-  it('Docking push step uses git-push (no cross-phase needs — worktree and plan are inherited)', async () => {
+  it('Docking push step uses git.push plugin step (no cross-phase needs — worktree and plan are inherited)', async () => {
     const wf = await loadWorkflow(missionYaml);
     const docking = wf.phases.find((p) => p.name === 'Docking')!;
     const push = docking.steps.find((s) => s.id === 'push')!;
     expect(push).toBeDefined();
-    expect(push.uses).toContain('git-push');
+    expect(push.step).toContain('git.push');
     // worktree and plan are from prior phases (inherited) — no needs required
     expect(push.needs ?? []).not.toContain('worktree');
     expect(push.needs ?? []).not.toContain('plan');
@@ -199,10 +199,10 @@ describe('mission.yaml', () => {
     expect(pr.needs ?? []).not.toContain('worktree');
   });
 
-  it('Docking pr step uses gh-pr', async () => {
+  it('Docking pr step uses github.pr plugin step', async () => {
     const wf = await loadWorkflow(missionYaml);
     const docking = wf.phases.find((p) => p.name === 'Docking')!;
     const pr = docking.steps.find((s) => s.id === 'pr')!;
-    expect(pr.uses).toContain('gh-pr');
+    expect(pr.step).toContain('github.pr');
   });
 });

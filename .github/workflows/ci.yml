@@ -24,6 +24,11 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm -r lint
+      # Build MUST precede `pnpm test`: the example e2e (and the meta-bin smoke
+      # test) load workspace packages by their built `dist/` — bare-specifier
+      # plugin resolution (e.g. `@plyflow/git`, `@plyflow/github`) goes through
+      # Node resolution, which ignores the `@plyflow/source` (TS source)
+      # condition. Reordering build after test breaks those suites.
       - run: pnpm -r build
       - name: Smoke-test the built meta bin
         run: |

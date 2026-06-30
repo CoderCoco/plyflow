@@ -1,0 +1,13 @@
+{
+  "name": "@plyflow/git",
+  "version": "0.3.0",
+  "description": "First-party plyflow plugin pack: typed git step types (worktree, commit, push, diff).",
+  "type": "module",
+  "engines": { "node": ">=24" },
+  "publishConfig": { "access": "public" },
+  "exports": { ".": { "@plyflow/source": "./src/index.ts", "default": "./dist/index.js" } },
+  "files": ["dist"],
+  "scripts": { "build": "tsdown", "test": "vitest run", "lint": "eslint src" },
+  "dependencies": { "@plyflow/core": "workspace:*", "zod": "^4.4.3" },
+  "devDependencies": { "@plyflow/testing": "workspace:*" }
+}

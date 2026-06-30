@@ -32,6 +32,7 @@ const sidebars: SidebarsConfig = {
         'steps/sh',
         'steps/use',
         'steps/plugin-step',
+        'steps/plugin-packs',
       ],
     },
     {

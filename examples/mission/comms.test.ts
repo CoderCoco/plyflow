@@ -33,11 +33,11 @@ describe('comms.yaml', () => {
     expect(stepIds).toContain('fetch');
   });
 
-  it('fetch step uses gh-comments', async () => {
+  it('fetch step uses github.comments plugin step', async () => {
     const wf = await loadWorkflow(commsYaml);
     const fetch = wf.phases.find((p) => p.name === 'Fetch')!;
     const fetchStep = fetch.steps.find((s) => s.id === 'fetch')!;
-    expect(fetchStep.uses).toContain('gh-comments');
+    expect(fetchStep.step).toContain('github.comments');
   });
 
   it('Triage phase has a triage step that is an agent referencing capcom', async () => {
