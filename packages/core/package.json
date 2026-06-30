@@ -1,17 +1,35 @@
 {
   "name": "@plyflow/core",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "plyflow workflow engine (loader, scheduler, steps, providers).",
   "type": "module",
-  "engines": { "node": ">=24" },
-  "publishConfig": { "access": "public" },
-  "exports": {
-    ".": { "@plyflow/source": "./src/index.ts", "default": "./dist/index.js" },
-    "./module-loader": { "@plyflow/source": "./src/core/module-loader.ts", "default": "./dist/module-loader.js" },
-    "./remote": { "@plyflow/source": "./src/core/remote/index.ts", "default": "./dist/remote.js" },
-    "./remote/trust": { "@plyflow/source": "./src/core/remote/trust.ts", "default": "./dist/remote/trust.js" }
+  "engines": {
+    "node": ">=24"
   },
-  "files": ["dist"],
+  "publishConfig": {
+    "access": "public"
+  },
+  "exports": {
+    ".": {
+      "@plyflow/source": "./src/index.ts",
+      "default": "./dist/index.js"
+    },
+    "./module-loader": {
+      "@plyflow/source": "./src/core/module-loader.ts",
+      "default": "./dist/module-loader.js"
+    },
+    "./remote": {
+      "@plyflow/source": "./src/core/remote/index.ts",
+      "default": "./dist/remote.js"
+    },
+    "./remote/trust": {
+      "@plyflow/source": "./src/core/remote/trust.ts",
+      "default": "./dist/remote/trust.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsdown",
     "test": "vitest run",
