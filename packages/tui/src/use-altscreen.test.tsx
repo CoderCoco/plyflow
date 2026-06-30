@@ -26,7 +26,11 @@ function makeFakeProc() {
     kill: vi.fn(),
     once(ev: string, cb: () => void) {
       handlers[ev] = handlers[ev] ?? [];
-      handlers[ev].push(cb);
+      const wrapped = () => {
+        handlers[ev] = (handlers[ev] ?? []).filter((h) => h !== wrapped);
+        cb();
+      };
+      handlers[ev].push(wrapped);
     },
     removeListener(ev: string, cb: () => void) {
       handlers[ev] = (handlers[ev] ?? []).filter((h) => h !== cb);
