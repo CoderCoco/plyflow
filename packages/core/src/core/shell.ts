@@ -29,6 +29,9 @@ export interface ShellExec {
  * if the process cannot be spawned.
  */
 export const defaultShellExec: ShellExec = (command, opts = {}) => {
+  if (Array.isArray(command) && command.length === 0) {
+    throw new Error('defaultShellExec requires a non-empty argv array');
+  }
   const [cmd, args, useShell] = Array.isArray(command)
     ? [command[0]!, command.slice(1), false]
     : [command, [] as string[], true];

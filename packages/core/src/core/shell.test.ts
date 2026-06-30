@@ -35,4 +35,15 @@ describe('defaultShellExec', () => {
     expect(r.code).toBe(0);
     expect(r.stdout).toBe('yes');
   });
+
+  it('accepts an argv array and spawns without a shell', async () => {
+    // Spaces in an argv element survive as a single argument (no shell word-splitting).
+    const r = await defaultShellExec(['node', '-e', "process.stdout.write('a b')"]);
+    expect(r.code).toBe(0);
+    expect(r.stdout).toBe('a b');
+  });
+
+  it('rejects an empty argv array with a clear message', () => {
+    expect(() => defaultShellExec([])).toThrow(/non-empty argv/);
+  });
 });
