@@ -10,9 +10,11 @@
 
 ## Global Constraints
 
-- **Built after Spec A.** This plan targets the post-Spec-A monorepo layout. File paths use `packages/core/src/**` (was `src/core`, `src/providers`, `src/steps`) and `packages/tui/src/**` (was `src/tui`). **Line numbers are predictions** against the current single-package code captured at planning time; reconcile against the real files when executing — anchor on the quoted surrounding code, not the line number.
+- **Specs A & B are merged** (monorepo split + core features + plugin packs). This plan has been reconciled against the real `packages/core/src/**` and `packages/tui/src/**` code, so the paths are exact and the line numbers are real (captured post-merge). Still anchor each edit on the quoted surrounding code, not the bare line number, since unrelated changes may shift it.
+- **Spec A additions already in the tree** that this plan respects (do not undo them): `buildDefaultRegistry(shellExec?)` now also registers the `sh` and `use` step types (`engine.ts:51`); `RunOptions`/`ExecScope`/`StepContext` already carry `dryRun`, `useChain`, `runDir`, `exec`; `runWorkflow` returns `{ runId, outputs, declaredOutputs }` (the extra field is irrelevant to the event-only tests here). None conflict with Spec C's additive changes.
 - **ESM `.js` import extensions** on every relative import, even in `.ts`/`.tsx` (e.g. `import { x } from './run-model.js'`). Required by ESM resolution; omitting breaks the build.
-- **Cross-package imports** resolve through package exports: TUI imports engine types via `import type { EngineEvent, AgentChunk, StepKind } from '@plyflow/core'` (NOT a relative path). Intra-package imports stay relative with `.js`.
+- **Cross-package imports** resolve through package exports. Engine **types** (`EngineEvent`, `UiRequest`, `PromptRequest`, `WorkflowFile`, and the new `AgentChunk`/`StepKind`) import from `@plyflow/core`. The module loader (`createLoader`, `DEFAULT_PROVIDED`) imports from the **subpath** `@plyflow/core/module-loader` (this is how the existing `App.tsx` reaches it — NOT the main index). Intra-package imports stay relative with `.js`.
+- **`packages/core/src/index.ts` is the public type surface for the TUI.** It does NOT currently export `AgentChunk` or `StepKind`. Task 1 adds `StepKind` and Task 2 adds `AgentChunk` to the `export type { EngineEvent, RunOptions } from './core/engine.js';` line (`index.ts:6`) — without this the `@plyflow/core` type imports in the TUI fail to resolve.
 - **TDD:** failing test first → watch it fail → minimal implementation → watch it pass → commit. Tests live beside source as `*.test.ts(x)`; fixtures in a sibling `__fixtures__/`.
 - **Test gate is vitest** (`pnpm -r test`), NOT `tsc --noEmit` (the repo has pre-existing type errors). Do not introduce NEW tsc errors; ignore pre-existing ones.
 - **Conventional Commits** for every commit.
@@ -46,8 +48,9 @@
 ## Task 1: Stable identity on engine events
 
 **Files:**
-- Modify: `packages/core/src/core/engine.ts` (the `EngineEvent` union, ~lines 18–24)
-- Modify: `packages/core/src/core/exec.ts` (emit sites at ~147, 184, 189, 235, 246)
+- Modify: `packages/core/src/core/engine.ts` (the `EngineEvent` union, lines 23–29)
+- Modify: `packages/core/src/core/exec.ts` (emit sites at lines 168, 210, 215, 266, 277)
+- Modify: `packages/core/src/index.ts` (re-export `StepKind`)
 - Test: `packages/core/src/core/identity.test.ts` *(new)*
 
 **Interfaces:**
@@ -96,8 +99,8 @@ phases:
     const starts = events.filter((e) => e.type === 'step-start') as Extract<EngineEvent, { type: 'step-start' }>[];
     const workStarts = starts.filter((s) => s.stepId === 'work');
     expect(workStarts.map((s) => s.instanceId).sort()).toEqual([
-      'phase:Build/build/build/foreach:a/work',
-      'phase:Build/build/build/foreach:b/work',
+      'phase:Build/build/foreach:a/work',
+      'phase:Build/build/foreach:b/work',
     ]);
     for (const s of workStarts) {
       expect(s.kind).toBe('run');
@@ -107,7 +110,7 @@ phases:
 });
 ```
 
-> Note: the doubled `build/build/foreach:a` segment reflects the current foreach `subPath` (`${cfg.stepId}/foreach:${key}`) nested under the step's own journalPath. Assert against the actual emitted strings when executing — adjust the expected array if the captured values differ, but keep the "distinct per element + parentId is instanceId minus last segment" invariant.
+> Verified against the real engine: the foreach `subPath` is `${cfg.stepId}/foreach:${safeKey}` (`steps/foreach.ts:129`), and `makeRunChildren` joins it to the parent `journalPath` once (`exec.ts:90`), so a `work` step inside foreach step `build` gets `instanceId = phase:Build/build/foreach:a/work` (single `build`). `parentId` is that string minus the trailing `/work`.
 
 - [ ] **Step 2: Run test to verify it fails**
 
@@ -116,12 +119,16 @@ Expected: FAIL — `step-start` events have no `instanceId`/`parentId`/`kind` (p
 
 - [ ] **Step 3: Extend the `EngineEvent` union**
 
-In `packages/core/src/core/engine.ts`, replace the union (currently lines ~18–24) with:
+In `packages/core/src/core/engine.ts`, replace the union (currently lines 23–29) with:
 
 ```ts
+// Known core step kinds; plugin steps (e.g. 'git.worktree') carry arbitrary
+// names, so the union stays open via `(string & {})` to accept any `type.name`
+// without a cast error while keeping editor autocomplete for the common kinds.
 export type StepKind =
-  | 'agent' | 'sh' | 'run' | 'uses' | 'input'
-  | 'widget' | 'parallel' | 'loop' | 'foreach' | 'step' | 'use';
+  | 'agent' | 'sh' | 'run' | 'input' | 'widget'
+  | 'parallel' | 'loop' | 'foreach' | 'use'
+  | (string & {});
 
 export type EngineEvent =
   | { type: 'phase-start'; phase: string }
@@ -132,15 +139,21 @@ export type EngineEvent =
   | { type: 'step-skipped'; stepId: string; instanceId: string };
 ```
 
-The `__env__` emit in `engine.ts` (~line 68) must supply an `instanceId`; change it to:
+The `__env__` emit in `engine.ts` (line 81) must supply an `instanceId`; change it to:
 
 ```ts
     onLog: (msg) => emit({ type: 'step-log', stepId: '__env__', instanceId: '__env__', message: msg }),
 ```
 
+Then re-export `StepKind` from the package's public surface so the TUI can import it. In `packages/core/src/index.ts`, change the engine type export (line 6) to:
+
+```ts
+export type { EngineEvent, RunOptions, StepKind } from './core/engine.js';
+```
+
 - [ ] **Step 4: Emit identity from `exec.ts`**
 
-In `packages/core/src/core/exec.ts`, inside `runOneStep`, compute the instance id once at the top (so the skip branch has it too). Add immediately after the `runOneStep(step: StepDef)` signature line (~141):
+In `packages/core/src/core/exec.ts`, inside `runOneStep`, compute the instance id once at the top (so the skip branch has it too). Add immediately after the `runOneStep(step: StepDef)` signature line (line 162):
 
 ```ts
     const instanceId = `${scope.journalPath}/${step.id}`;
@@ -148,37 +161,37 @@ In `packages/core/src/core/exec.ts`, inside `runOneStep`, compute the instance i
     const kind = scope.registry.select(step).name as import('./engine.js').StepKind;
 ```
 
-Then update each emit. Skip branch (~147):
+Then update each emit. Skip branch (line 168):
 
 ```ts
         scope.emit({ type: 'step-skipped', stepId: step.id, instanceId });
 ```
 
-Cached done (~184):
+Cached done (line 210):
 
 ```ts
       scope.emit({ type: 'step-done', stepId: step.id, instanceId, output: cached.output, cached: true });
 ```
 
-Start (~189):
+Start (line 215):
 
 ```ts
     scope.emit({ type: 'step-start', stepId: step.id, instanceId, parentId, kind });
 ```
 
-Done (~235):
+Done (line 266):
 
 ```ts
       scope.emit({ type: 'step-done', stepId: step.id, instanceId, output: res.output, cached: false });
 ```
 
-Error (~246):
+Error (line 277):
 
 ```ts
       scope.emit({ type: 'step-error', stepId: step.id, instanceId, error: message });
 ```
 
-`journalKey` (line ~177) is now redundant with `instanceId`; replace its declaration `const journalKey = \`${scope.journalPath}/${step.id}\`;` with `const journalKey = instanceId;` to keep the rest of the function unchanged.
+`journalKey` (line 203) is now redundant with `instanceId`; replace its declaration `const journalKey = \`${scope.journalPath}/${step.id}\`;` with `const journalKey = instanceId;` to keep the rest of the function unchanged.
 
 - [ ] **Step 5: Run the test to verify it passes**
 
@@ -193,7 +206,7 @@ Expected: PASS. If any existing test constructs/asserts `EngineEvent` objects, a
 - [ ] **Step 7: Commit**
 
 ```bash
-git add packages/core/src/core/engine.ts packages/core/src/core/exec.ts packages/core/src/core/identity.test.ts
+git add packages/core/src/core/engine.ts packages/core/src/core/exec.ts packages/core/src/index.ts packages/core/src/core/identity.test.ts
 git commit -m "feat(core): add instanceId/parentId/kind to engine events"
 ```
 
@@ -205,6 +218,7 @@ git commit -m "feat(core): add instanceId/parentId/kind to engine events"
 - Modify: `packages/core/src/core/engine.ts` (add `AgentChunk`, add `agent-stream` variant)
 - Modify: `packages/core/src/steps/types.ts` (`StepEvent` `output.chunk` → `AgentChunk`)
 - Modify: `packages/core/src/core/exec.ts` (`ctx.emit` handles `output`)
+- Modify: `packages/core/src/index.ts` (re-export `AgentChunk`)
 - Test: `packages/core/src/core/agent-stream.test.ts` *(new)*
 
 **Interfaces:**
@@ -287,9 +301,15 @@ Add this variant to the `EngineEvent` union:
   | { type: 'agent-stream'; stepId: string; instanceId: string; chunk: AgentChunk };
 ```
 
+Then re-export `AgentChunk` from `packages/core/src/index.ts` (the TUI imports it as a type from `@plyflow/core`). Extend the engine type export line (already carries `StepKind` from Task 1):
+
+```ts
+export type { EngineEvent, RunOptions, StepKind, AgentChunk } from './core/engine.js';
+```
+
 - [ ] **Step 4: Update `StepEvent` to carry an `AgentChunk`**
 
-In `packages/core/src/steps/types.ts`, change the `output` arm (line ~6) and import the type:
+In `packages/core/src/steps/types.ts`, change the `output` arm (line 8) and import the type:
 
 ```ts
 import type { StepDef } from '../core/types.js';
@@ -303,7 +323,7 @@ export type StepEvent =
 
 - [ ] **Step 5: Translate `output` events in `exec.ts`**
 
-In `packages/core/src/core/exec.ts`, extend the `ctx.emit` handler (currently only handles `log`, ~lines 208–212):
+In `packages/core/src/core/exec.ts`, extend the `ctx.emit` handler (currently only handles `log`, lines 239–243):
 
 ```ts
       emit: (ev) => {
@@ -323,7 +343,7 @@ Expected: PASS.
 - [ ] **Step 7: Commit**
 
 ```bash
-git add packages/core/src/core/engine.ts packages/core/src/steps/types.ts packages/core/src/core/exec.ts packages/core/src/core/agent-stream.test.ts
+git add packages/core/src/core/engine.ts packages/core/src/steps/types.ts packages/core/src/core/exec.ts packages/core/src/index.ts packages/core/src/core/agent-stream.test.ts
 git commit -m "feat(core): add AgentChunk + agent-stream event translation"
 ```
 
@@ -1005,7 +1025,7 @@ export function ChunkLine({ chunk: c }: { chunk: AgentChunk }): React.ReactEleme
 
 - [ ] **Step 4: Update `ProgressTree.tsx` to use shared maps**
 
-In `packages/tui/src/ProgressTree.tsx`, delete its local `glyph`/`color` consts (lines ~15–27) and import them:
+In `packages/tui/src/ProgressTree.tsx`, delete its local `glyph`/`color` consts (lines 14–27) and import them:
 
 ```tsx
 import { glyph, color } from './status.js';
@@ -1428,16 +1448,16 @@ git commit -m "feat(tui): alternate screen buffer lifecycle hook"
 
 - [ ] **Step 1: Extract `WidgetHost` into its own module**
 
-Create `packages/tui/src/WidgetHost.tsx` and move the `WidgetComponent` type, `widgetCache`, `__clearWidgetCache`, `WidgetHostProps`, and `WidgetHost` function out of `App.tsx` verbatim (keep the same exports). Add the needed imports at the top:
+Create `packages/tui/src/WidgetHost.tsx` and move the `WidgetComponent` type, `widgetCache`, `__clearWidgetCache`, `WidgetHostProps`, and `WidgetHost` function out of `App.tsx` verbatim (keep the same exports). The imports at the top are exactly the loader/type imports the current `App.tsx` already uses — note `createLoader`/`DEFAULT_PROVIDED` come from the `@plyflow/core/module-loader` **subpath**, not the main index:
 
 ```tsx
 import React, { useEffect, useRef, useState } from 'react';
 import { Text } from 'ink';
-import { createLoader, DEFAULT_PROVIDED } from '@plyflow/core';
+import { createLoader, DEFAULT_PROVIDED } from '@plyflow/core/module-loader';
 import type { UiRequest } from '@plyflow/core';
 ```
 
-Export both `WidgetHost` and `__clearWidgetCache`. (Update any test that imported `__clearWidgetCache` from `./App.js` to import from `./WidgetHost.js`.)
+Export both `WidgetHost` and `__clearWidgetCache`. Then check `packages/tui/src/widget.test.tsx` — it currently imports `__clearWidgetCache` from `./App.js`; repoint that import to `./WidgetHost.js`. (Grep: `grep -rn __clearWidgetCache packages/tui/src` to catch every reference.)
 
 - [ ] **Step 2: Write the failing modal test**
 
@@ -1539,31 +1559,56 @@ git commit -m "feat(tui): extract WidgetHost + add centered question modal"
 - Consumes: `applyEvent`/`createRunModel` (Task 5), `RunView` (Task 6), `useRunNav` (Task 7), `useAltscreen` (Task 8), `QuestionModal`/`PendingUi` (Task 9).
 - Produces: the new `App` renders, inside an altscreen full-height box: `RunView` driven by the folded `RunModel` + `useRunNav` state, with a `QuestionModal` overlay when a question is pending. A `pending` **queue** (FIFO) renders one modal at a time. `App` exits when the event stream ends.
 
-- [ ] **Step 1: Write the failing integration test**
+- [ ] **Step 1: Update the existing test's events, then add the streaming+modal test**
 
-Add to `packages/tui/src/App.test.tsx` a test that feeds events (including a concurrent agent stream and a pending prompt) and asserts the split-pane shows agents while a question modal is up. Use the existing async-iterable event-feeding pattern in that file.
+`App.test.tsx` already has one test ("calls onDone and renders done glyph") whose inline `async function* events()` yields hand-written events **without** `instanceId`/`parentId`/`kind`. After this task `App` renders `RunView`, which keys steps by `instanceId` — so those events must be updated or the step won't render. Change the two yields in that test to:
+
+```tsx
+      yield { type: 'step-start', stepId: 's', instanceId: 'phase:P/s', parentId: 'phase:P', kind: 'run' };
+      await new Promise((r) => setTimeout(r, 5));
+      yield { type: 'step-done', stepId: 's', instanceId: 'phase:P/s', output: 1, cached: false };
+```
+
+(The existing assertions `frame.toContain('s')` and `frame.toMatch(/✓/)` still hold — `RunView`'s selector renders `✓ s` for the done step.)
+
+Add `UiRequest` to the file's type import:
+
+```tsx
+import type { EngineEvent, WorkflowFile, UiRequest } from '@plyflow/core';
+```
+
+Then add the new test. It mirrors the file's existing harness (inline `async function*` for `events`, `render(<App .../>)`, read `lastFrame`), and captures the `registerPrompt` handler so it can fire a between-stage question while agents stream:
 
 ```tsx
 it('shows streaming agents in the split-pane and a modal when a question is pending', async () => {
-  const events: EngineEvent[] = [
-    { type: 'phase-start', phase: 'Build' },
-    { type: 'step-start', stepId: 'astro', instanceId: 'phase:Build/astro', parentId: 'phase:Build', kind: 'agent' },
-    { type: 'agent-stream', stepId: 'astro', instanceId: 'phase:Build/astro', chunk: { t: 'tool_use', name: 'Edit', summary: 'scheduler.ts' } },
-  ];
-  // feed via the file's existing makeEvents(...) helper / async iterable
-  const { lastFrame, registerPrompt } = renderApp(events); // use the harness already in this test file
-  // trigger a pending question through the registered handler
+  const wf: WorkflowFile = { name: 'demo', phases: [{ name: 'Build', steps: [{ id: 'astro', agent: 'a.md' }] }] };
+
+  // Long-lived stream: emit the build events, then stay open so App does not
+  // exit() before we assert (the generator ending triggers onDone()+exit()).
+  async function* events(): AsyncGenerator<EngineEvent> {
+    yield { type: 'phase-start', phase: 'Build' };
+    yield { type: 'step-start', stepId: 'astro', instanceId: 'phase:Build/astro', parentId: 'phase:Build', kind: 'agent' };
+    yield { type: 'agent-stream', stepId: 'astro', instanceId: 'phase:Build/astro', chunk: { t: 'tool_use', name: 'Edit', summary: 'scheduler.ts' } };
+    await new Promise((r) => setTimeout(r, 300));
+  }
+
+  // Capture the handler App registers so we can trigger a question on demand.
+  let handler: ((stepId: string, req: UiRequest) => Promise<unknown>) | null = null;
+  const { lastFrame } = render(
+    <App workflow={wf} events={events()} registerPrompt={(h) => { handler = h; }} onDone={() => {}} />,
+  );
+
+  await new Promise((r) => setTimeout(r, 30)); // let events fold in + handler register
   let resolved = false;
-  registerPrompt('ready', { kind: 'prompt', type: 'confirm', message: 'Proceed to liftoff?' }).then(() => { resolved = true; });
-  await tick();
+  handler!('ready', { kind: 'prompt', type: 'confirm', message: 'Proceed to liftoff?' }).then(() => { resolved = true; });
+  await new Promise((r) => setTimeout(r, 30));
+
   const frame = lastFrame()!;
-  expect(frame).toContain('astro');                 // selector lists the agent
-  expect(frame).toContain('Proceed to liftoff?');   // modal is overlaid
-  expect(resolved).toBe(false);                      // still waiting
+  expect(frame).toContain('astro');               // selector lists the streaming agent
+  expect(frame).toContain('Proceed to liftoff?'); // modal overlaid while it streams
+  expect(resolved).toBe(false);                    // still waiting on the user
 });
 ```
-
-> Adapt `renderApp` / `makeEvents` / `tick` to the helpers already present in `App.test.tsx` (the file already builds an async-iterable event queue and calls `render(<App .../>)`). Keep the assertions.
 
 - [ ] **Step 2: Run it to verify it fails**
 
@@ -1637,7 +1682,7 @@ export function App({ events, registerPrompt, onDone }: AppProps): React.ReactEl
 - [ ] **Step 4: Run the App + full TUI suite to verify they pass**
 
 Run: `pnpm --filter @plyflow/tui test`
-Expected: PASS. Update any older `App.test.tsx` assertions that expected the static `ProgressTree` output (they should now assert against `RunView` text — phase headers + labels still appear).
+Expected: PASS — including the existing "done glyph" test (its events were updated in Step 1 and it now reads `RunView` output) and the new streaming+modal test.
 
 - [ ] **Step 5: Run the whole workspace gate**
 
@@ -1671,9 +1716,10 @@ git commit -m "feat(tui): live split-pane agent view with altscreen + question m
 - Alternate screen buffer + robust teardown → Task 8 ✓
 - Centered question modal reusing widget/prompt path + FIFO queue + background streaming → Tasks 9–10 ✓
 - "No post-quit summary / replay out of scope" → honored (no summary printer in any task) ✓
+- Cross-package type plumbing (`StepKind`/`AgentChunk` re-exported from core `index.ts`; loader via the `@plyflow/core/module-loader` subpath) → Tasks 1, 2, 9 ✓
 
-**Placeholder scan:** No TBD/TODO; every code step shows complete code. Two explicit reconciliation notes (Task 1 Step 1 instanceId strings; Task 10 harness helpers) point at real, named anchors rather than hand-waving.
+**Placeholder scan:** No TBD/TODO; every code step shows complete code against the real merged tree.
 
 **Type consistency:** `AgentChunk` shape identical across core (Task 2), provider mapping (Task 3), logger (Task 4), reducer (Task 5), renderers (Task 6). `RunModel`/`AgentInstance` field names (`order`, `byId`, `phases`, `buffer`, `trimmed`, `depth`, `label`, `tokens`) consistent across Tasks 5–7, 10. `useRunNav` return shape (`cursorId`/`focus`/`scrollOffset`) matches `RunView` props (Task 6) and App wiring (Task 10). `PendingUi` defined once (Task 9), imported by App (Task 10).
 
-**Known reconciliation risk (flagged, not a gap):** exact `instanceId` strings and `App.test.tsx` harness helper names depend on the real post-Spec-A code; both are called out at their step with the invariant to preserve.
+**Reconciliation (post Specs A & B merge) — both previously-flagged risks resolved:** the `instanceId` format `phase:<p>/<step>/foreach:<key>/<child>` is verified against `foreach.ts:129` + `exec.ts:90`; the `App.test.tsx` harness is matched to the real file (inline `async function*` + `lastFrame`, no `renderApp`/`tick` helpers); the `createLoader`/`DEFAULT_PROVIDED` import is corrected to the `@plyflow/core/module-loader` subpath; `StepKind`/`AgentChunk` re-exports are added to `index.ts:6`; and the pre-existing `App.test.tsx` events plus `widget.test.tsx`'s `__clearWidgetCache` import are updated for the new required fields/module. No predicted or unresolved anchors remain.
