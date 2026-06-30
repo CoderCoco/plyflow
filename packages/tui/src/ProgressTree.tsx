@@ -1,5 +1,6 @@
 import React from 'react';
 import { Box, Text } from 'ink';
+import { glyph, color } from './status.js';
 
 export interface StepView {
   id: string;
@@ -11,20 +12,6 @@ export interface PhaseView {
   name: string;
   steps: StepView[];
 }
-
-const glyph: Record<StepView['status'], string> = {
-  pending: '○',
-  running: '◐',
-  done: '✓',
-  error: '✗',
-};
-
-const color: Record<StepView['status'], string> = {
-  pending: 'gray',
-  running: 'cyan',
-  done: 'green',
-  error: 'red',
-};
 
 export function ProgressTree({ phases }: { phases: PhaseView[] }): React.ReactElement {
   return (
