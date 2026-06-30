@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { messageToChunk } from './agent-sdk-chunks.js';
+import { ClaudeProvider } from './claude.js';
 
 describe('messageToChunk', () => {
   it('maps an assistant tool_use block to a tool_use chunk', () => {
@@ -25,9 +26,16 @@ describe('messageToChunk', () => {
   it('returns null for system/unknown messages', () => {
     expect(messageToChunk({ type: 'system' } as never)).toBeNull();
   });
-});
 
-import { ClaudeProvider } from './claude.js';
+  it('truncates a tool_result content string longer than 120 chars', () => {
+    const longContent = 'a'.repeat(121);
+    const msg = { type: 'user', message: { content: [{ type: 'tool_result', is_error: false, content: longContent }] } };
+    const chunk = messageToChunk(msg as never) as { t: string; ok: boolean; summary: string };
+    expect(chunk.t).toBe('tool_result');
+    expect(chunk.summary.length).toBeLessThanOrEqual(120);
+    expect(chunk.summary.endsWith('…')).toBe(true);
+  });
+});
 
 describe('ClaudeProvider onChunk (agent-sdk mode)', () => {
   it('calls onChunk for each streamed message that maps to a chunk', async () => {

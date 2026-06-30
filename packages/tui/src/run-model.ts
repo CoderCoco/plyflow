@@ -89,7 +89,6 @@ export function applyEvent(model: RunModel, e: EngineEvent): RunModel {
         trimmed: false,
       };
       const next = cloneModel(model);
-      next.byId = new Map(model.byId);
       next.byId.set(e.instanceId, inst);
       next.order = model.byId.has(e.instanceId) ? model.order : insertOrdered(model.order, e.instanceId);
       return next;

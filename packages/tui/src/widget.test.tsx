@@ -56,10 +56,23 @@ function neverEnds(): AsyncIterable<EngineEvent> {
   };
 }
 
+/** Minimal fake terminal output that captures writes without touching the real stdout. */
+function makeFakeOut() {
+  return {
+    writes: [] as string[],
+    rows: 24,
+    columns: 80,
+    write(s: string) { this.writes.push(s); },
+    on(_ev: 'resize', _cb: () => void) {},
+    off(_ev: 'resize', _cb: () => void) {},
+  };
+}
+
 /** Helper: render App, wait for registerPrompt, return handler + frames + unmount */
 async function setupApp() {
   const wf = makeWorkflow();
   let promptHandler: ((stepId: string, req: UiRequest) => Promise<unknown>) | undefined;
+  const fakeOut = makeFakeOut();
 
   const { frames, unmount } = render(
     <App
@@ -69,6 +82,7 @@ async function setupApp() {
         promptHandler = handler;
       }}
       onDone={() => {}}
+      out={fakeOut}
     />,
   );
 

@@ -32,4 +32,13 @@ describe('useAltscreen', () => {
     unmount();
     expect(out.writes.some((w) => w.includes('[?1049l'))).toBe(true);
   });
+
+  it('updates rendered rows after a resize event', async () => {
+    const out = makeFakeOut();
+    const { lastFrame } = render(<Harness out={out} />);
+    out.setSize(40, 120);
+    out.triggerResize();
+    await new Promise((r) => setTimeout(r, 10));
+    expect(lastFrame()).toContain('rows=40');
+  });
 });
