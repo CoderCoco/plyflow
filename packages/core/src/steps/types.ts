@@ -2,10 +2,11 @@ import type { StepDef } from '../core/types.js';
 import type { AIProvider } from '../providers/types.js';
 import type { StepRegistry } from './registry.js';
 import type { Exec } from '../core/workflow-env.js';
+import type { AgentChunk } from '../core/engine.js';
 
 export type StepEvent =
   | { type: 'log'; message: string }
-  | { type: 'output'; chunk: string };
+  | { type: 'output'; chunk: AgentChunk };
 
 export type UiRequest =
   | { kind: 'prompt'; type: 'confirm' | 'text' | 'select'; message: string; choices?: string[] }

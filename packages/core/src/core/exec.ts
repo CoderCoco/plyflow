@@ -243,6 +243,8 @@ export async function runSteps(
       emit: (ev) => {
         if (ev.type === 'log') {
           scope.emit({ type: 'step-log', stepId: step.id, instanceId, message: ev.message });
+        } else if (ev.type === 'output') {
+          scope.emit({ type: 'agent-stream', stepId: step.id, instanceId, chunk: ev.chunk });
         }
       },
       prompt: (req) => scope.prompt(step.id, req),

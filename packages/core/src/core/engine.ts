@@ -28,13 +28,22 @@ export type StepKind =
   | 'parallel' | 'loop' | 'foreach' | 'use'
   | (string & {});
 
+export type AgentChunk =
+  | { t: 'tool_use'; name: string; summary: string }
+  | { t: 'tool_result'; ok: boolean; summary: string }
+  | { t: 'assistant'; text: string }
+  | { t: 'thinking'; text: string }
+  | { t: 'result'; tokens?: number }
+  | { t: 'raw'; text: string };
+
 export type EngineEvent =
   | { type: 'phase-start'; phase: string }
   | { type: 'step-start'; stepId: string; instanceId: string; parentId: string | null; kind: StepKind }
   | { type: 'step-done'; stepId: string; instanceId: string; output: unknown; cached: boolean }
   | { type: 'step-error'; stepId: string; instanceId: string; error: string }
   | { type: 'step-log'; stepId: string; instanceId: string; message: string }
-  | { type: 'step-skipped'; stepId: string; instanceId: string };
+  | { type: 'step-skipped'; stepId: string; instanceId: string }
+  | { type: 'agent-stream'; stepId: string; instanceId: string; chunk: AgentChunk };
 
 export interface RunOptions {
   inputs?: Record<string, unknown>;
