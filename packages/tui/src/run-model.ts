@@ -14,6 +14,7 @@ export interface AgentInstance {
   trimmed: boolean;
   output?: unknown;
   tokens?: number;
+  error?: string;
 }
 
 export interface RunModel {
@@ -108,7 +109,7 @@ export function applyEvent(model: RunModel, e: EngineEvent): RunModel {
     case 'step-done':
       return upsert(model, e.instanceId, { status: 'done', output: e.output });
     case 'step-error':
-      return upsert(model, e.instanceId, { status: 'error' });
+      return upsert(model, e.instanceId, { status: 'error', error: e.error });
     case 'step-skipped':
       return model;
     case 'step-log':

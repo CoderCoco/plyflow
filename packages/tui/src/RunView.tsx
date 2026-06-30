@@ -46,7 +46,7 @@ function Detail({ inst, scrollOffset }: { inst: AgentInstance | undefined; scrol
       {inst.label} {glyph[inst.status]}
     </Text>
   );
-  if (inst.kind !== 'agent' && inst.buffer.length === 0) {
+  if (inst.buffer.length === 0) {
     return (
       <Box flexDirection="column">
         {header}

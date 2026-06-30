@@ -16,7 +16,7 @@ import React from 'react';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { App } from './App.js';
-import { __clearWidgetCache } from './WidgetHost.js';
+import { __clearWidgetCache, requestCacheKey } from './WidgetHost.js';
 import type { EngineEvent } from '@plyflow/core';
 import type { WorkflowFile } from '@plyflow/core';
 import type { UiRequest } from '@plyflow/core';
@@ -31,6 +31,9 @@ const BAD_WIDGET_DIR = path.dirname(BAD_WIDGET_PATH);
 
 const MISSING_WIDGET_PATH = path.resolve(__dirname, '__fixtures__/DoesNotExist.tsx');
 const MISSING_WIDGET_DIR = path.dirname(MISSING_WIDGET_PATH);
+
+const MEMO_WIDGET_PATH = path.resolve(__dirname, '__fixtures__/MemoWidget.tsx');
+const MEMO_WIDGET_DIR = path.dirname(MEMO_WIDGET_PATH);
 
 /** Minimal workflow file with one step so App initialises cleanly. */
 function makeWorkflow(): WorkflowFile {
@@ -200,6 +203,63 @@ describe('App widget mounting', () => {
     // App should render the "widget failed" error line instead of hanging.
     const errorFrame = frames.find((f) => f.includes('widget failed'));
     expect(errorFrame).toBeDefined();
+
+    unmount();
+  });
+});
+
+describe('requestCacheKey (Fix 6 — unit tests)', () => {
+  it('same module + same baseDir + no provided → same key', () => {
+    const k1 = requestCacheKey('mod.tsx', '/a', undefined);
+    const k2 = requestCacheKey('mod.tsx', '/a', {});
+    expect(k1).toBe(k2);
+  });
+
+  it('same module but different baseDir → different key', () => {
+    const k1 = requestCacheKey('mod.tsx', '/a', {});
+    const k2 = requestCacheKey('mod.tsx', '/b', {});
+    expect(k1).not.toBe(k2);
+  });
+
+  it('same module + same baseDir but different provided → different key', () => {
+    const k1 = requestCacheKey('mod.tsx', '/a', {});
+    const k2 = requestCacheKey('mod.tsx', '/a', { x: '1' });
+    expect(k1).not.toBe(k2);
+  });
+
+  it('different module + same baseDir → different key', () => {
+    const k1 = requestCacheKey('a.tsx', '/base', {});
+    const k2 = requestCacheKey('b.tsx', '/base', {});
+    expect(k1).not.toBe(k2);
+  });
+});
+
+describe('App widget — React.memo wrapped component (Fix 7)', () => {
+  beforeEach(() => {
+    __clearWidgetCache();
+  });
+
+  it('renders a React.memo wrapped widget without "no usable default export" error', async () => {
+    const { frames, unmount, promptHandler } = await setupApp();
+
+    const widgetRequest: UiRequest = {
+      kind: 'widget',
+      module: MEMO_WIDGET_PATH,
+      baseDir: MEMO_WIDGET_DIR,
+      props: 'memo-data',
+    };
+
+    void promptHandler('s', widgetRequest);
+
+    await new Promise((r) => setTimeout(r, 500));
+
+    // Must NOT show "no usable default export" error.
+    const errorFrame = frames.find((f) => f.includes('no usable default export'));
+    expect(errorFrame).toBeUndefined();
+
+    // Should render the memo widget's output.
+    const memoFrame = frames.find((f) => f.includes('memo-widget'));
+    expect(memoFrame).toBeDefined();
 
     unmount();
   });

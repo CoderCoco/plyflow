@@ -33,4 +33,16 @@ describe('RunView', () => {
     );
     expect(lastFrame()).toContain('> Edit a.ts');
   });
+
+  it('shows string output in detail pane when agent never streamed any chunks', () => {
+    const agentNoStream = build([
+      { type: 'phase-start', phase: 'Summarise' },
+      { type: 'step-start', stepId: 'summary', instanceId: 'phase:Summarise/summary', parentId: 'phase:Summarise', kind: 'agent' },
+      { type: 'step-done', stepId: 'summary', instanceId: 'phase:Summarise/summary', output: 'final summary' },
+    ]);
+    const { lastFrame } = render(
+      <RunView model={agentNoStream} cursorId="phase:Summarise/summary" focus="detail" scrollOffset={0} width={100} />,
+    );
+    expect(lastFrame()).toContain('final summary');
+  });
 });

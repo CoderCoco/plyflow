@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render } from 'ink-testing-library';
 import React from 'react';
 import { Text } from 'ink';
@@ -19,8 +19,26 @@ function makeFakeOut() {
   };
 }
 
-function Harness({ out }: { out: ReturnType<typeof makeFakeOut> }): React.ReactElement {
-  const { rows } = useAltscreen(out);
+function makeFakeProc() {
+  const handlers: Record<string, (() => void)[]> = {};
+  return {
+    pid: 42,
+    kill: vi.fn(),
+    once(ev: string, cb: () => void) {
+      handlers[ev] = handlers[ev] ?? [];
+      handlers[ev].push(cb);
+    },
+    removeListener(ev: string, cb: () => void) {
+      handlers[ev] = (handlers[ev] ?? []).filter((h) => h !== cb);
+    },
+    trigger(ev: string) {
+      for (const cb of handlers[ev] ?? []) cb();
+    },
+  };
+}
+
+function Harness({ out, proc }: { out: ReturnType<typeof makeFakeOut>; proc?: ReturnType<typeof makeFakeProc> }): React.ReactElement {
+  const { rows } = useAltscreen(out, proc as never);
   return <Text>{`rows=${rows}`}</Text>;
 }
 
@@ -40,5 +58,14 @@ describe('useAltscreen', () => {
     out.triggerResize();
     await new Promise((r) => setTimeout(r, 10));
     expect(lastFrame()).toContain('rows=40');
+  });
+
+  it('restores terminal and re-raises SIGINT when Ctrl-C is pressed', () => {
+    const out = makeFakeOut();
+    const proc = makeFakeProc();
+    render(<Harness out={out} proc={proc} />);
+    proc.trigger('SIGINT');
+    expect(out.writes.some((w) => w.includes('[?1049l'))).toBe(true);
+    expect(proc.kill).toHaveBeenCalledWith(42, 'SIGINT');
   });
 });

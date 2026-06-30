@@ -66,7 +66,9 @@ describe('applyEvent', () => {
       { type: 'step-start', stepId: 'a', instanceId: id, parentId: 'phase:P', kind: 'sh' },
       { type: 'step-error', stepId: 'a', instanceId: id, error: 'boom' },
     ]);
-    expect(m.byId.get(id)!.status).toBe('error');
+    const inst = m.byId.get(id)!;
+    expect(inst.status).toBe('error');
+    expect(inst.error).toBe('boom');
   });
 
   it('ring-caps the buffer at MAX_BUFFER and sets trimmed', () => {

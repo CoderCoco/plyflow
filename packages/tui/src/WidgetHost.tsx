@@ -14,7 +14,21 @@ import type { UiRequest } from '@plyflow/core';
  */
 type WidgetComponent = React.ComponentType<{ data: unknown; resolve: (value: unknown) => void }>;
 
-/** Cache of already-loaded widget modules, keyed by absolute module path. */
+/**
+ * Compute a cache key that covers the full request identity: the module specifier,
+ * the base directory used for resolution, and the `provided` package overrides.
+ * Two requests that share the same module string but differ in baseDir or provided
+ * would resolve to different implementations and must not share a cached component.
+ */
+export function requestCacheKey(
+  module: string,
+  baseDir: string,
+  provided: Record<string, string> | undefined,
+): string {
+  return `${module}\0${baseDir}\0${JSON.stringify(provided ?? {})}`;
+}
+
+/** Cache of already-loaded widget modules, keyed by full request identity (see requestCacheKey). */
 const widgetCache = new Map<string, WidgetComponent>();
 
 /** Reset the widget module cache. Exported for test isolation only. */
@@ -42,10 +56,12 @@ interface WidgetHostProps {
  * re-renders (e.g. due to parent state changes) before the widget resolves.
  */
 export function WidgetHost({ request, onResolve }: WidgetHostProps): React.ReactElement | null {
+  const key = requestCacheKey(request.module, request.baseDir, request.provided);
+
   const [component, setComponent] = useState<WidgetComponent | null>(() => {
     // Synchronously use the cache on initial render to avoid a loading flash
     // when the module was already loaded in this process session.
-    return widgetCache.get(request.module) ?? null;
+    return widgetCache.get(key) ?? null;
   });
   const [error, setError] = useState<Error | null>(null);
 
@@ -53,9 +69,16 @@ export function WidgetHost({ request, onResolve }: WidgetHostProps): React.React
   const onResolveRef = useRef(onResolve);
   onResolveRef.current = onResolve;
 
+  // When the full request identity changes, sync component/error state from the cache
+  // (or clear them so the loader effect below will re-fetch).
   useEffect(() => {
-    if (widgetCache.has(request.module)) {
-      setComponent(widgetCache.get(request.module)!);
+    setComponent(widgetCache.get(key) ?? null);
+    setError(null);
+  }, [key]);
+
+  useEffect(() => {
+    if (widgetCache.has(key)) {
+      setComponent(widgetCache.get(key)!);
       return;
     }
     const loader = createLoader({ baseDir: request.baseDir, provided: request.provided ?? DEFAULT_PROVIDED, jsx: true });
@@ -65,18 +88,23 @@ export function WidgetHost({ request, onResolve }: WidgetHostProps): React.React
       // Support both ESM default export and CommonJS module.exports patterns.
       const ns = mod as Record<string, unknown>;
       const Comp = ns['default'] ?? mod;
-      if (typeof Comp !== 'function') {
+      // Accept plain functions and React wrapped components (React.memo, React.forwardRef, etc.)
+      // which are plain objects with a `$$typeof` symbol property.
+      const isRenderable =
+        typeof Comp === 'function' ||
+        (typeof Comp === 'object' && Comp !== null && typeof (Comp as Record<string | symbol, unknown>)['$$typeof'] === 'symbol');
+      if (!isRenderable) {
         setError(new Error(`widget module "${request.module}" has no usable default export`));
         return;
       }
-      widgetCache.set(request.module, Comp as WidgetComponent);
+      widgetCache.set(key, Comp as WidgetComponent);
       setComponent(() => Comp as WidgetComponent);
     }).catch((err: unknown) => {
       if (cancelled) return;
       setError(err instanceof Error ? err : new Error(String(err)));
     });
     return () => { cancelled = true; };
-  }, [request.module, request.baseDir]);
+  }, [key, request.module, request.baseDir, request.provided]);
 
   if (error) {
     return <Text color="red">widget failed: {error.message}</Text>;

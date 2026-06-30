@@ -211,6 +211,7 @@ export async function runSteps(
     );
     if (cached && cached.status === 'completed' && cached.hash === hash && !upstreamDirty) {
       scope.outputs[step.id] = cached.output;
+      scope.emit({ type: 'step-start', stepId: step.id, instanceId, parentId, kind });
       scope.emit({ type: 'step-done', stepId: step.id, instanceId, output: cached.output, cached: true });
       return;
     }

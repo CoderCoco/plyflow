@@ -8,11 +8,21 @@ interface OutLike {
   off?(ev: 'resize', cb: () => void): void;
 }
 
+interface ProcLike {
+  pid: number;
+  once(ev: 'SIGINT' | 'exit', cb: () => void): void;
+  removeListener(ev: 'SIGINT' | 'exit', cb: () => void): void;
+  kill(pid: number, signal: string): void;
+}
+
 // ESC byte (0x1b) prefixes each sequence — required for actual terminal control.
 const ENTER = '\x1b[?1049h\x1b[2J\x1b[H';  // enter altscreen + clear + home
 const RESTORE = '\x1b[?1049l';              // leave altscreen (restore)
 
-export function useAltscreen(out: OutLike = process.stdout): { rows: number; columns: number } {
+export function useAltscreen(
+  out: OutLike = process.stdout,
+  proc: ProcLike = process as unknown as ProcLike,
+): { rows: number; columns: number } {
   const [size, setSize] = useState({ rows: out.rows ?? 24, columns: out.columns ?? 80 });
 
   useEffect(() => {
@@ -22,16 +32,17 @@ export function useAltscreen(out: OutLike = process.stdout): { rows: number; col
 
     // Restore on hard exits too, so a crash never strands the user in altscreen.
     const restore = () => out.write(RESTORE);
-    process.once('SIGINT', restore);
-    process.once('exit', restore);
+    const onSigint = () => { restore(); proc.kill(proc.pid, 'SIGINT'); };
+    proc.once('SIGINT', onSigint);
+    proc.once('exit', restore);
 
     return () => {
       out.off?.('resize', onResize);
-      process.removeListener('SIGINT', restore);
-      process.removeListener('exit', restore);
+      proc.removeListener('SIGINT', onSigint);
+      proc.removeListener('exit', restore);
       out.write(RESTORE);
     };
-  }, [out]);
+  }, [out, proc]);
 
   return size;
 }
