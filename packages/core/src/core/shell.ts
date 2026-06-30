@@ -30,7 +30,10 @@ export interface ShellExec {
  */
 export const defaultShellExec: ShellExec = (command, opts = {}) => {
   if (Array.isArray(command) && command.length === 0) {
-    throw new Error('defaultShellExec requires a non-empty argv array');
+    // Reject (not a synchronous throw) so the failure surfaces through the same
+    // Promise channel as every other outcome — callers using .catch()/await
+    // both see it.
+    return Promise.reject(new Error('defaultShellExec requires a non-empty argv array'));
   }
   const [cmd, args, useShell] = Array.isArray(command)
     ? [command[0]!, command.slice(1), false]

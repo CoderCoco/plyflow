@@ -43,7 +43,7 @@ describe('defaultShellExec', () => {
     expect(r.stdout).toBe('a b');
   });
 
-  it('rejects an empty argv array with a clear message', () => {
-    expect(() => defaultShellExec([])).toThrow(/non-empty argv/);
+  it('rejects an empty argv array with a clear message', async () => {
+    await expect(defaultShellExec([])).rejects.toThrow(/non-empty argv/);
   });
 });
