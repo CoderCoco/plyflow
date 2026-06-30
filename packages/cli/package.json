@@ -1,14 +1,31 @@
 {
   "name": "@plyflow/cli",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "plyflow command-line interface.",
   "type": "module",
-  "engines": { "node": ">=24" },
-  "publishConfig": { "access": "public" },
-  "bin": { "plyflow": "./dist/index.js" },
-  "exports": { ".": { "@plyflow/source": "./src/index.ts", "default": "./dist/index.js" } },
-  "files": ["dist"],
-  "scripts": { "build": "tsdown", "test": "vitest run", "lint": "eslint src" },
+  "engines": {
+    "node": ">=24"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "bin": {
+    "plyflow": "./dist/index.js"
+  },
+  "exports": {
+    ".": {
+      "@plyflow/source": "./src/index.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsdown",
+    "test": "vitest run",
+    "lint": "eslint src"
+  },
   "dependencies": {
     "@plyflow/core": "workspace:*",
     "@plyflow/tui": "workspace:*",
