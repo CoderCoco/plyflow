@@ -39,6 +39,7 @@ export const agentStep: StepType<AgentCfg> = {
         ...cfg.params,
       },
       outputSchema: schema?.jsonSchema,
+      onChunk: (chunk) => ctx.emit({ type: 'output', chunk }),
     });
     if (schema) {
       return { output: schema.validate(result.structured) };
