@@ -20,13 +20,30 @@ import { loadPlugins } from './plugins.js';
 import { resolvePluginRef } from './plugin-ref.js';
 import type { ShellExec } from './shell.js';
 
+// Known core step kinds; plugin steps (e.g. 'git.worktree') carry arbitrary
+// names, so the union stays open via `(string & {})` to accept any `type.name`
+// without a cast error while keeping editor autocomplete for the common kinds.
+export type StepKind =
+  | 'agent' | 'sh' | 'run' | 'input' | 'widget'
+  | 'parallel' | 'loop' | 'foreach' | 'use'
+  | (string & {});
+
+export type AgentChunk =
+  | { t: 'tool_use'; name: string; summary: string }
+  | { t: 'tool_result'; ok: boolean; summary: string }
+  | { t: 'assistant'; text: string }
+  | { t: 'thinking'; text: string }
+  | { t: 'result'; tokens?: number }
+  | { t: 'raw'; text: string };
+
 export type EngineEvent =
   | { type: 'phase-start'; phase: string }
-  | { type: 'step-start'; stepId: string }
-  | { type: 'step-done'; stepId: string; output: unknown; cached: boolean }
-  | { type: 'step-error'; stepId: string; error: string }
-  | { type: 'step-log'; stepId: string; message: string }
-  | { type: 'step-skipped'; stepId: string };
+  | { type: 'step-start'; stepId: string; instanceId: string; parentId: string | null; kind: StepKind }
+  | { type: 'step-done'; stepId: string; instanceId: string; output: unknown; cached: boolean }
+  | { type: 'step-error'; stepId: string; instanceId: string; error: string }
+  | { type: 'step-log'; stepId: string; instanceId: string; message: string }
+  | { type: 'step-skipped'; stepId: string; instanceId: string }
+  | { type: 'agent-stream'; stepId: string; instanceId: string; chunk: AgentChunk };
 
 export interface RunOptions {
   inputs?: Record<string, unknown>;
@@ -78,7 +95,7 @@ export async function runWorkflow(
   // deps, npm ci/install runs (or the injected opts.exec in tests).
   const env = await prepareEnv(workflowPath, {
     exec: opts.exec,
-    onLog: (msg) => emit({ type: 'step-log', stepId: '__env__', message: msg }),
+    onLog: (msg) => emit({ type: 'step-log', stepId: '__env__', instanceId: '__env__', message: msg }),
   });
 
   const wf = await loadWorkflow(workflowPath);

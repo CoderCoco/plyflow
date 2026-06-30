@@ -2,6 +2,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { spawn } from 'node:child_process';
 import type { AIProvider, AICompleteRequest, AIResult } from './types.js';
 import type { SDKMessage } from '@anthropic-ai/claude-agent-sdk';
+import { messageToChunk } from './agent-sdk-chunks.js';
 
 export type AnthropicLike = { messages: { create(body: any): Promise<any> } };
 
@@ -125,6 +126,10 @@ export class ClaudeProvider implements AIProvider {
     let resultMessage: (SDKMessage & { type: 'result' }) | null = null;
 
     for await (const message of stream) {
+      if (req.onChunk) {
+        const chunk = messageToChunk(message);
+        if (chunk) req.onChunk(chunk);
+      }
       if (message.type === 'assistant') {
         lastAssistantMessage = message;
       } else if (message.type === 'result') {

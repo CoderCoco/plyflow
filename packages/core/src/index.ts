@@ -3,7 +3,7 @@
 
 // Engine
 export { runWorkflow, buildDefaultRegistry } from './core/engine.js';
-export type { EngineEvent, RunOptions } from './core/engine.js';
+export type { EngineEvent, RunOptions, StepKind, AgentChunk } from './core/engine.js';
 
 // Loading
 export { loadWorkflow, loadAgent } from './core/loader.js';

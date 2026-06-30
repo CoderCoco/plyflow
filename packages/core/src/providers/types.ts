@@ -1,3 +1,5 @@
+import type { AgentChunk } from '../core/engine.js';
+
 export type JsonSchema = Record<string, unknown>;
 
 export interface AICompleteRequest {
@@ -8,6 +10,8 @@ export interface AICompleteRequest {
   mode?: string;
   params?: Record<string, unknown>;
   outputSchema?: JsonSchema;
+  /** Optional live-streaming callback; called per agent message that maps to a chunk. */
+  onChunk?: (chunk: AgentChunk) => void;
 }
 
 export interface AIResult {
