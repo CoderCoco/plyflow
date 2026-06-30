@@ -1,0 +1,15 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+#
+# CodeRabbit configuration.
+#
+# Exclude the superpowers design/plan docs from review. These files
+# (docs/superpowers/specs/** and docs/superpowers/plans/**) are historical,
+# point-in-time design and implementation-plan artifacts. They embed large code
+# blocks that are the *starting point* for implementation, not the shipped
+# source — the authoritative code lives under packages/** and plugins/**, which
+# evolves through review after a plan is written. Reviewing the frozen code
+# blocks in these docs produces phantom findings on every push for issues that
+# are already addressed (or intentionally superseded) in the real source.
+reviews:
+  path_filters:
+    - '!docs/superpowers/**'
